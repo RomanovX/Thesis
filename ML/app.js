@@ -9,7 +9,7 @@ const log = require('./lib/log');
 const config = require('./config');
 
 const basicRouter = require('./routes/basicRoutes');
-const uploadRouter = require('./routes/upload');
+const apiRouter = require('./routes/api');
 
 const app = express();
 
@@ -37,7 +37,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', basicRouter);
-app.use('/upload', uploadRouter);
+app.use('/api/v1', apiRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

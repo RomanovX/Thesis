@@ -1,7 +1,7 @@
 
-<p>Information about uploading</p>
+<p>Information about uploadin </p>
 
-<form id="uploadForm" action="/upload" method="post">
+<form id="uploadForm">
     Activity:<br>
     <input id="activity" type="text" name="activity" placeholder="e.g. Brushing Teeth" required>
     <br>
@@ -14,12 +14,4 @@
     <input type="submit" value="Submit">
 </form>
 
-{{#if uploaded}}
-<p class="error">
-    {{#if upload_error}}
-        Error! Your activity was not uploaded. Error message: {{upload_error}}
-    {{else}}
-        Your activity was successfully uploaded!
-    {{/if}}
-</p>
-{{/if}}
+<p id="uploadStatus" class="error"></p>

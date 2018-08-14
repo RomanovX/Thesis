@@ -14,4 +14,8 @@ router.get('/about', function(req, res, next) {
 	res.render('about', { page: 'About'});
 });
 
+router.get('/upload', function(req, res, next) {
+	res.render('upload', { page: 'Upload', scripts: [{script: '/js/upload.js'}]});
+});
+
 module.exports = router;
