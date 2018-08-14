@@ -7,7 +7,7 @@ router.get('/', function(req, res, next) {
 });
 
 router.get('/statistics', function(req, res, next) {
-	res.render('statistics', { page: 'Statistics', stylesheets: [{stylesheet: '/stylesheets/statistics.css'}], scripts: [{script: '/js/counter.js'}]});
+	res.render('statistics', { page: 'Statistics', stylesheets: [{stylesheet: '/stylesheets/statistics.css'}], scripts: [{script: '/js/counter.js'}, {script: '/js/statistics.js'}]});
 });
 
 router.get('/about', function(req, res, next) {

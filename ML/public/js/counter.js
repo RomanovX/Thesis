@@ -87,12 +87,12 @@ jQuery(function ($) {
 		}
 	});
 
-	// start all the timers
-	$('.timer').each(count);
-
-	function count(options) {
-		var $this = $(this);
-		options = $.extend({}, options || {}, $this.data('countToOptions') || {});
-		$this.countTo(options);
-	}
+	// // start all the timers
+	// $('.timer').each(count);
+	//
+	// function count(options) {
+	// 	var $this = $(this);
+	// 	options = $.extend({}, options || {}, $this.data('countToOptions') || {});
+	// 	$this.countTo(options);
+	// }
 });

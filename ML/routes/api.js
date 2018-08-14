@@ -7,6 +7,29 @@ const Activity = require('../models/activity');
 
 /* GET home page. */
 
+router.delete('/activity', function(req, res, next) {
+	fiber(() => {
+		Activity.collection.drop();
+	}, (err) => {
+		if(err) {
+			log.e(err);
+			res.status(500).send('Failed to clear activity database: ' + err.message);
+		}
+	});
+});
+
+router.get('/activity', function(req, res, next) {
+	fiber(() => {
+		const count = await(Activity.count({}, defer()));
+		res.status(200).send({count: count});
+	}, (err) => {
+		if(err) {
+			log.e(err);
+			res.status(500).send('Failed to get activity statistics: ' + err.message);
+		}
+	});
+});
+
 router.post('/activity', function(req, res, next) {
 	fiber(() => {
 		// TODO: don't resubmit upon refresh
@@ -19,7 +42,6 @@ router.post('/activity', function(req, res, next) {
 			res.send(400);
 		}
 
-		throw new Error('blabla')
 		// TODO: this does not handle timezone differences
 		const startingDateTime = new Date(req.body.startingDate + " " + req.body.startingTime);
 
@@ -29,13 +51,13 @@ router.post('/activity', function(req, res, next) {
 			duration: req.body.duration
 		});
 
-		var activity = await(act.save(defer()));
+		await(act.save(defer()));
 
 		res.send(200)
 	}, (err) => {
 		if(err) {
 			log.e(err);
-			res.status(500).send(err.message);
+			res.status(500).send('Failed to process activity: ' + err.message);
 		}
 	});
 });
