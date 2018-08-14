@@ -1,10 +1,52 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>{{title}}</title>
-    <link rel='stylesheet' href='/stylesheets/style.css' />
-  </head>
-  <body>
+<head>
+    <title>NotiVal - {{page}}</title>
+    <link rel='stylesheet' href='/stylesheets/style.css'/>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
+    <script src="//code.jquery.com/jquery-3.3.1.min.js"></script>
+    {{#each stylesheets}}
+        <link rel='stylesheet' href="{{stylesheet}}"/>
+    {{/each}}
+</head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<body>
+<div class="topnav" id="myTopnav">
+    <a id="home" href="/">Home</a>
+    <a id="statistics" href="statistics">Statistics</a>
+    <a id="upload" href="upload">Upload</a>
+    <a id="about" href="about">About</a>
+    <a href="javascript:void(0);" class="icon" onclick="checkResponsive()">
+        <i class="fa fa-bars"></i>
+    </a>
+</div>
+<div class="content">
+    <h1 class="header">
+        {{page}}
+    </h1>
     {{{body}}}
-  </body>
+</div>
+<div id="footer">
+    © Remy Kabel 2018
+</div>
+{{#each scripts}}
+    <script src="{{script}}"></script>
+{{/each}}
+</body>
+<script>
+    function checkResponsive() {
+        const x = document.getElementById("myTopnav");
+        if (x.className === "topnav") {
+            x.className += " responsive";
+        } else {
+            x.className = "topnav";
+        }
+    }
+
+    const current = document.getElementById("{{page}}".toLowerCase());
+    if (current) {
+        current.className += " active";
+    }
+
+</script>
 </html>

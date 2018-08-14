@@ -1,0 +1,25 @@
+
+<p>Information about uploading</p>
+
+<form id="uploadForm" action="/upload" method="post">
+    Activity:<br>
+    <input id="activity" type="text" name="activity" placeholder="e.g. Brushing Teeth" required>
+    <br>
+    Starting date:<br>
+    <input id="startingDate" type="date" name="startingDate" required><input id="startingTime" type="time" name="startingTime" value="12:00" required>
+    <br>
+    Duration (min):<br>
+    <input id="duration" type="number" name="duration" value="0" required>
+    <br><br>
+    <input type="submit" value="Submit">
+</form>
+
+{{#if uploaded}}
+<p class="error">
+    {{#if upload_error}}
+        Error! Your activity was not uploaded. Error message: {{upload_error}}
+    {{else}}
+        Your activity was successfully uploaded!
+    {{/if}}
+</p>
+{{/if}}
