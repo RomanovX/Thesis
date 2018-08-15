@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+const formidable = require('express-formidable');
 
 const db = require('./lib/db');
 const log = require('./lib/log');
@@ -35,6 +36,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Automatically parsing form data
+app.use(formidable());
 
 app.use('/', basicRouter);
 app.use('/api/v1', apiRouter);

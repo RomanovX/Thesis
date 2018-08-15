@@ -48,6 +48,19 @@ a {
     color: #00B7FF;
 }
 
+.fLeft {
+    float: left;
+}
+
+.fRight {
+    float: right;
+}
+
+.center {
+    width: 100%;
+    text-align: center;
+}
+
 .error {
     font-size: 11px;
     font-style: italic;
