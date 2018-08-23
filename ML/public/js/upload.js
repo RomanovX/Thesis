@@ -1,4 +1,4 @@
-
+//TODO: clear forms when done uploading
 
 $(document).ready(function() {
 	const today = new Date();

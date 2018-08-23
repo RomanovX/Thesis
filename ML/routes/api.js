@@ -73,10 +73,32 @@ router.post('/activity/bulk', function(req, res, next) {
 			res.status(400).send();
 		}
 
-		var xml = await(fs.readFile(req.files.file.path, defer()));
-		var json = x2j.toJson(xml, {
-			object: true
-		});
+		let activities;
+
+		// Try xes file
+		try {
+			const xml = await(fs.readFile(req.files.file.path, defer()));
+			const json = x2j.toJson(xml, {
+				object: true
+			});
+			if (json.log && json.log.trace && json.log["xes.version"]) {
+				//TODO: now every activity (start and end) is a separate activity
+				activities = json.log.trace.reduce((acts, trace) => {
+					return acts.concat(trace.event.map(event => {
+						return {
+							activity: event.string[0].value,
+							start: new Date(event.date.value),
+							end: new Date(event.date.value)
+						};
+					}))
+				}, [])
+			}
+		} catch (e) {
+			// Do something with a possible error, or not
+		}
+
+		await(Activity.insertMany(activities, defer()));
+
 		res.status(200).send();
 	}, (err) => {
 		if(err) {
