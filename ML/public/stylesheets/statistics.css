@@ -1,0 +1,38 @@
+.container {
+    flex-wrap: wrap;
+    display: flex;
+    justify-content: space-between;
+}
+
+.counterBlock {
+    display: inline-block;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    transition: 0.3s;
+    flex-basis: 200px;
+    background-color: #ffffff;
+    text-align: center;
+    margin: 10px;
+}
+
+.counterBlock:hover {
+    box-shadow: 0 12px 24px 0 rgba(0,0,0,0.2);
+}
+
+.timer {
+    padding: 20px;
+    font-size: 40px;
+}
+
+.description {
+    padding: 0 10px 20px 10px;
+}
+
+.counterIcon {
+    color: #ffffff;
+    width: 100%;
+    padding: 10px 0;
+    font-size: 50px;
+    background-color: #4CAF50;
+    border-radius: 0 0 50% 50%;
+}
+

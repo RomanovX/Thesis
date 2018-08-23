@@ -1,0 +1,30 @@
+
+<p>Information about uploading </p>
+
+<form id="uploadForm" class="fLeft">
+    Activity:<br>
+    <input id="activity" type="text" name="activity" placeholder="e.g. Brushing Teeth" required>
+    <br>
+    Start date & time:<br>
+    <input id="startDate" type="date" name="startDate" required>
+    <input id="startTime" type="time" name="startTime" required>
+    <br>
+    End date & time:<br>
+    <input id="endDate" type="date" name="endDate" required>
+    <input id="endTime" type="time" name="endTime" required>
+    <br><br>
+    <input type="submit" value="Submit">
+</form>
+
+
+<form id="uploadFile" class="fRight" enctype="multipart/form-data">
+    Upload bulk ADL file:<br>
+    <input type="file" name="file"><br>
+    <br><br>
+    <input type="submit" value="Submit">
+</form>
+
+<p id="uploadStatus" class="error center"></p>
+
+
+
