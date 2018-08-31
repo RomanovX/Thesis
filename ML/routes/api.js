@@ -73,7 +73,7 @@ router.post('/activity/bulk', function(req, res, next) {
 			res.status(400).send();
 		}
 
-		let activities;
+		let activities = [];
 
 		// Try xes file
 		try {
@@ -83,18 +83,43 @@ router.post('/activity/bulk', function(req, res, next) {
 			});
 			if (json.log && json.log.trace && json.log["xes.version"]) {
 				//TODO: now every activity (start and end) is a separate activity
-				activities = json.log.trace.reduce((acts, trace) => {
+				entries = json.log.trace.reduce((acts, trace) => {
 					return acts.concat(trace.event.map(event => {
 						return {
 							activity: event.string[0].value,
-							start: new Date(event.date.value),
-							end: new Date(event.date.value)
+							date: new Date(event.date.value),
+							status: new Date(event.string[1].value)
 						};
 					}))
-				}, [])
+				}, []);
+
+				if(entries.length % 2 !== 0) {
+					throw new Error("Not every activity has a start and an end entry");
+				}
+
+				entries.sort((a,b) => a.date - b.date);
+
+				for (let i = 0, l = entries.length; i < l-1; i+=2) {
+					if(entries[i].name === "Start" || entries[i] === "End") {
+						continue;
+					}
+
+					if(entries[i].string[0].value !== entries[i+1].string[0].value
+						|| entries[i].string[1].value !== "start"
+						|| entries[i+1].string[1].value !== "complete") {
+						throw new Error("Not every activity has a start and an end entry")
+					}
+
+					activities.push({
+						activity: name,
+						start: new Date(entries[i].date.value),
+						end: new Date(entries[i+1].date.value)
+					})
+				}
 			}
-		} catch (e) {
-			// Do something with a possible error, or not
+		} catch (err) {
+			res.status(400).send('Failed to process bulk activity file: ' + err.message);
+			activities = [];
 		}
 
 		await(Activity.insertMany(activities, defer()));
@@ -103,7 +128,7 @@ router.post('/activity/bulk', function(req, res, next) {
 	}, (err) => {
 		if(err) {
 			log.e(err);
-			res.status(500).send('Failed to get process bulk activity file: ' + err.message);
+			res.status(500).send('Failed to process bulk activity file: ' + err.message);
 		}
 	});
 });
