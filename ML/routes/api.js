@@ -5,9 +5,8 @@ const x2j = require('xml2json');
 const fs = require('fs');
 
 const log = require('../lib/log');
+const em = require('../lib/em');
 const Activity = require('../models/activity');
-
-/* GET home page. */
 
 router.delete('/activity', function(req, res, next) {
 	fiber(() => {
@@ -23,13 +22,32 @@ router.delete('/activity', function(req, res, next) {
 
 router.get('/activity', function(req, res, next) {
 	fiber(() => {
-		const count = await(Activity.countDocuments({}, defer()));
-		const activities = await(Activity.distinct('activity', defer())).length;
-		res.status(200).send({count: count, activities: activities});
+		if (!req.params) {
+			const count = await(Activity.countDocuments({}, defer()));
+			const activities = await(Activity.distinct('activity', defer()));
+			const unique = activities.length;
+			res.status(200).send({count: count, activities: activities, unique: unique});
+			return;
+		}
+
+		const activities = await(Activity.find(req.params, defer()));
+		res.status(200).send(activities);
 	}, (err) => {
 		if(err) {
 			log.e(err);
 			res.status(500).send('Failed to get activity statistics: ' + err.message);
+		}
+	});
+});
+
+router.get('/activity/:id', function(req, res, next) {
+	fiber(() => {
+		const activity = await(Activity.findOne({_id: req.params.id}, defer()));
+		res.status(200).send(activity);
+	}, (err) => {
+		if(err) {
+			log.e(err);
+			res.status(500).send('Failed to get activity: ' + err.message);
 		}
 	});
 });
@@ -139,6 +157,29 @@ router.post('/activity/bulk', function(req, res, next) {
 		if(err) {
 			log.e(err);
 			res.status(500).send('Failed to process bulk activity file: ' + err.message);
+		}
+	});
+});
+
+router.post('/cluster', function(req, res, next) {
+	fiber(() => {
+		if (req.body) {
+			res.status(500).send('No body expected.');
+			return;
+		}
+
+		const activities = await(Activity.distinct('activity', defer()));
+
+		const clusters = activities.map(activity => {
+			const events = await(Activity.find({activity: activity}, defer()));
+			return em.calculateClusters(events);
+		});
+
+		res.status(200).send(clusters);
+	}, (err) => {
+		if(err) {
+			log.e(err);
+			res.status(500).send('Failed calculate clusters: ' + err.message);
 		}
 	});
 });

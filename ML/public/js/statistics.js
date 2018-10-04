@@ -10,7 +10,7 @@ function refreshCounters() {
 		url: 'api/v1/activity',
 		success: function(res) {
 			$('#totalCount').attr("data-to", res.count||0);
-			$('#activitiesCount').attr("data-to", res.activities||0);
+			$('#activitiesCount').attr("data-to", res.unique||0);
 			$('.timer').each(count);
 		},
 		error: function(xhr, status, error) {

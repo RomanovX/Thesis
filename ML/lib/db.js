@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const log = require('./log');
 
 mongoose.Promise = global.Promise;
 
@@ -19,15 +18,6 @@ module.exports.connect = function(config, cb) {
 		authSource: 'admin',
 		ssl: true
 	}, cb);
-
-	// connection = mongoose.connect("mongodb+srv://" + config.host + config.path, {
-	// 	user: config.user,
-	// 	pass: config.pwd,
-	// 	retryWrites: true,
-	// 	useNewUrlParser: true,
-	// 	dbName: 'NotiVal',
-	// 	replicaSet: 'Activities-shard-0'
-	// }, cb);
 	return connection;
 };
 
