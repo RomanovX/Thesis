@@ -83,12 +83,12 @@ router.post('/activity/bulk', function(req, res, next) {
 			});
 			if (json.log && json.log.trace && json.log["xes.version"]) {
 				//TODO: now every activity (start and end) is a separate activity
-				entries = json.log.trace.reduce((acts, trace) => {
-					return acts.concat(trace.event.map(event => {
+				let entries = json.log.trace.reduce((acts, trace) => {
+					return acts.concat(trace.event.map(entry => {
 						return {
-							activity: event.string[0].value,
-							date: new Date(event.date.value),
-							status: new Date(event.string[1].value)
+							activity: entry.string[0].value,
+							date: new Date(entry.date.value),
+							status: entry.string[1].value
 						};
 					}))
 				}, []);
@@ -99,23 +99,33 @@ router.post('/activity/bulk', function(req, res, next) {
 
 				entries.sort((a,b) => a.date - b.date);
 
-				for (let i = 0, l = entries.length; i < l-1; i+=2) {
-					if(entries[i].name === "Start" || entries[i] === "End") {
-						continue;
+				// First store the starting and only move to the final store upon also completed
+				const startingEntries = [];
+
+				entries.forEach(entry => {
+					if(entry.activity === "Start" || entry.activity === "End") {
+						return;
 					}
 
-					if(entries[i].string[0].value !== entries[i+1].string[0].value
-						|| entries[i].string[1].value !== "start"
-						|| entries[i+1].string[1].value !== "complete") {
-						throw new Error("Not every activity has a start and an end entry")
+					if (entry.status === "start") {
+						startingEntries.push({
+							activity: entry.activity,
+							start: entry.date
+						})
 					}
 
-					activities.push({
-						activity: name,
-						start: new Date(entries[i].date.value),
-						end: new Date(entries[i+1].date.value)
-					})
-				}
+					if (entry.status === "complete") {
+						const event = startingEntries.find(startingEntry => startingEntry.activity === entry.activity);
+
+						if (!event) {
+							throw new Error("Not every activity has a start and an end entry");
+						}
+
+						event.end = entry.date;
+						event.duration = event.end - event.start;
+						activities.push(event);
+					}
+				});
 			}
 		} catch (err) {
 			res.status(400).send('Failed to process bulk activity file: ' + err.message);
