@@ -7,22 +7,13 @@ const fs = require('fs');
 const log = require('../lib/log');
 const em = require('../lib/em');
 const Activity = require('../models/activity');
+const Cluster = require('../models/cluster');
 
-router.delete('/activity', function(req, res, next) {
-	fiber(() => {
-		await(Activity.collection.drop(defer()));
-		res.status(200).send();
-	}, (err) => {
-		if(err) {
-			log.e(err);
-			res.status(500).send('Failed to clear activity database: ' + err.message);
-		}
-	});
-});
+// TODO: Rewrite all per user
 
-router.get('/activity', function(req, res, next) {
+router.get('/activities', function(req, res, next) {
 	fiber(() => {
-		if (!req.params) {
+		if (!req.params || (Object.keys(req.params).length === 0 && req.params.constructor === Object)) {
 			const count = await(Activity.countDocuments({}, defer()));
 			const activities = await(Activity.distinct('activity', defer()));
 			const unique = activities.length;
@@ -40,7 +31,7 @@ router.get('/activity', function(req, res, next) {
 	});
 });
 
-router.get('/activity/:id', function(req, res, next) {
+router.get('/activities/:id', function(req, res, next) {
 	fiber(() => {
 		const activity = await(Activity.findOne({_id: req.params.id}, defer()));
 		res.status(200).send(activity);
@@ -52,7 +43,7 @@ router.get('/activity/:id', function(req, res, next) {
 	});
 });
 
-router.post('/activity', function(req, res, next) {
+router.post('/activities', function(req, res, next) {
 	fiber(() => {
 		// TODO: don't accept duplicate upload
 		// TODO: proper status codes
@@ -85,7 +76,7 @@ router.post('/activity', function(req, res, next) {
 	});
 });
 
-router.post('/activity/bulk', function(req, res, next) {
+router.post('/activities/bulk', function(req, res, next) {
 	fiber(() => {
 		if(!req.files || !req.files.file) {
 			res.status(400).send();
@@ -100,7 +91,6 @@ router.post('/activity/bulk', function(req, res, next) {
 				object: true
 			});
 			if (json.log && json.log.trace && json.log["xes.version"]) {
-				//TODO: now every activity (start and end) is a separate activity
 				let entries = json.log.trace.reduce((acts, trace) => {
 					return acts.concat(trace.event.map(entry => {
 						return {
@@ -140,7 +130,7 @@ router.post('/activity/bulk', function(req, res, next) {
 						}
 
 						event.end = entry.date;
-						event.duration = event.end - event.start;
+						event.duration = Math.round((event.end - event.start) / 1000);
 						activities.push(event);
 					}
 				});
@@ -161,25 +151,60 @@ router.post('/activity/bulk', function(req, res, next) {
 	});
 });
 
-router.post('/cluster', function(req, res, next) {
+router.delete('/activities', function(req, res, next) {
 	fiber(() => {
-		if (req.body) {
-			res.status(500).send('No body expected.');
-			return;
+		await(Activity.remove({}, defer()));
+		res.status(200).send();
+	}, (err) => {
+		if(err) {
+			log.e(err);
+			res.status(500).send('Failed to clear activity database: ' + err.message);
 		}
+	});
+});
 
-		const activities = await(Activity.distinct('activity', defer()));
-
-		const clusters = activities.map(activity => {
-			const events = await(Activity.find({activity: activity}, defer()));
-			return em.calculateClusters(events);
-		});
-
+router.get('/clusters', function(req, res, next) {
+	fiber(() => {
+		const clusters = await(Cluster.find({}, defer()));
 		res.status(200).send(clusters);
 	}, (err) => {
 		if(err) {
 			log.e(err);
-			res.status(500).send('Failed calculate clusters: ' + err.message);
+			res.status(500).send('Failed to get clusters: ' + err.message);
+		}
+	});
+});
+
+router.post('/clusters', function(req, res, next) {
+	fiber(() => {
+		if (req.body && !(Object.keys(req.body).length === 0 && req.body.constructor === Object)) {
+			res.status(500).send('No body expected.');
+			return;
+		}
+
+		const activityNames = await(Activity.distinct('activity', defer()));
+
+		const clusterArray = [];
+
+		activityNames.forEach(activity => {
+			const activities = await(Activity.find({activity: activity}, defer()));
+			const clusters = em.calculateClusters(activities);
+			clusters.forEach(cluster => {
+				clusterArray.push({
+					activity: activity,
+					parameters: cluster
+				})
+			})
+		});
+
+		await(Cluster.remove({}, defer()));
+		await(Cluster.insertMany(clusterArray, defer()));
+
+		res.status(200).send();
+	}, (err) => {
+		if(err) {
+			log.e(err);
+			res.status(500).send('Failed to calculate clusters: ' + err.message);
 		}
 	});
 });

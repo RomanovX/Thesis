@@ -5,6 +5,10 @@ const activitySchema = new mongoose.Schema({
 	start: Date,
 	end: Date,
 	duration: Number,
+	user: {
+		type: String,
+		default: 0
+	}
 });
 
 module.exports = mongoose.model('Activity', activitySchema);

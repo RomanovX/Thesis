@@ -14,7 +14,7 @@ $(document).ready(function() {
 		e.preventDefault();
 		$.ajax({
 			type: 'POST',
-			url: 'api/v1/activity',
+			url: 'api/v1/activities',
 			data: $(this).serialize(),
 			success: function() {
 				$('#uploadStatus').text("Your activity was successfully uploaded!")
@@ -29,7 +29,7 @@ $(document).ready(function() {
 		e.preventDefault();
 		$.ajax({
 			type: 'POST',
-			url: 'api/v1/activity/bulk',
+			url: 'api/v1/activities/bulk',
 			data: new FormData($(this)[0]),
 			cache: false,
 			contentType: false,
