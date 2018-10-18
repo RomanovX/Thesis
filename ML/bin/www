@@ -14,8 +14,15 @@ const log = require('../lib/log');
  */
 
 console.log(process.env);
-const port = normalizePort(process.env.OPENSHIFT_NODEJS_PORT || process.env.PORT || '3000');
-const ip = process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1';
+let port = normalizePort(process.env.PORT || '3000');
+let ip = process.env.IP || '127.0.0.1';
+
+if(process.env['OPENSHIFT_BUILD_NAMESPACE'] && process.env.['OPENSHIFT_BUILD_NAMESPACE'] === 'notival') {
+  port = '8080';
+  ip = '0.0.0.0';
+}
+
+
 app.set('port', port);
 
 /**
