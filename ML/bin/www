@@ -17,7 +17,7 @@ console.log(process.env);
 let port = normalizePort(process.env.PORT || '3000');
 let ip = process.env.IP || '127.0.0.1';
 
-if(process.env['OPENSHIFT_BUILD_NAMESPACE'] && process.env.['OPENSHIFT_BUILD_NAMESPACE'] === 'notival') {
+if(process.env['OPENSHIFT_BUILD_NAMESPACE'] && process.env['OPENSHIFT_BUILD_NAMESPACE'] === 'notival') {
   port = '8080';
   ip = '0.0.0.0';
 }
