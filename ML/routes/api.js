@@ -5,7 +5,7 @@ const x2j = require('xml2json');
 const fs = require('fs');
 
 const log = require('../lib/log');
-const em = require('../lib/em');
+const em = require('../lib/prediction');
 const Activity = require('../models/activity');
 const Cluster = require('../models/cluster');
 
@@ -105,7 +105,7 @@ router.post('/activities/bulk', function(req, res, next) {
 					throw new Error("Not every activity has a start and an end entry");
 				}
 
-				entries.sort((a,b) => a.date - b.date);
+				//entries.sort((a,b) => a.date - b.date);
 
 				// First store the starting and only move to the final store upon also completed
 				const startingEntries = [];
@@ -128,6 +128,9 @@ router.post('/activities/bulk', function(req, res, next) {
 						if (!event) {
 							throw new Error("Not every activity has a start and an end entry");
 						}
+
+						// remove from the array
+						startingEntries.splice(startingEntries.indexOf(event), 1);
 
 						event.end = entry.date;
 						event.duration = Math.round((event.end - event.start) / 1000);
