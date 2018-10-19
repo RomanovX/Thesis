@@ -124,9 +124,6 @@ a {
         float: right;
         display: block;
     }
-}
-
-@media screen and (max-width: 600px) {
     .topnav.responsive {position: relative; }
     .topnav.responsive a.active {
         background-color: var(--main-orange-dark);
@@ -142,4 +139,13 @@ a {
         display: block;
         text-align: left;
     }
+
+    iframe {
+        height: calc(100vh - 48px);
+    }
+}
+
+iframe {
+    width: 100%;
+    height: calc(100vh - 250px - 37.52px - 32px);
 }

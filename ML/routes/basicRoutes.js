@@ -18,4 +18,8 @@ router.get('/upload', function(req, res, next) {
 	res.render('upload', { page: 'Upload', scripts: [{script: '/js/upload.js'}]});
 });
 
+router.get('/docs', function(req, res, next) {
+	res.render('docs', { page: 'Documentation'});
+});
+
 module.exports = router;
