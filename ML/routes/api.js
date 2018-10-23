@@ -191,11 +191,13 @@ router.post('/clusters', function(req, res, next) {
 
 		activityNames.forEach(activity => {
 			const activities = await(Activity.find({activity: activity}, defer()));
-			const clusters = em.calculateClusters(activities);
-			clusters.forEach(cluster => {
+			const result = em.calculateClusters(activities);
+			result.clusters.forEach((cluster, i) => {
 				clusterArray.push({
 					activity: activity,
-					parameters: cluster
+					parameters: cluster,
+					duration: result.durations[i],
+					model: result.model
 				})
 			})
 		});
