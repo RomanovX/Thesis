@@ -2,6 +2,7 @@ const log = require('./log');
 const em = require('expectation-maximization');
 const ExpectationMaximization = require('ml-expectation-maximization').ExpectationMaximization;
 const math = require('mathjs');
+const Apriori = require('apriori');
 
 /**
  * @param activities {Array.<{activity: String, start: Object, end: Object, duration: Number}>}	Array of activity objects
@@ -61,6 +62,7 @@ function calculateClusters(activities) {
 	return {model: finalModel, clusters: finalClusters, durations: durationParameters};
 }
 
+function predict(cluster) {}
 
 module.exports = {
 	calculateClusters: calculateClusters,
