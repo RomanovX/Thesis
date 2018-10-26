@@ -22,4 +22,14 @@ router.get('/docs', function(req, res, next) {
 	res.render('docs', { page: 'Documentation'});
 });
 
+router.get('/docs/:chapter', function(req, res, next) {
+	const chapter = req.params.chapter;
+	res.render('chapter', { chapter: chapter});
+});
+
+router.get('/snippets/:snippet', function(req, res, next) {
+	const snippet = req.params.snippet;
+	res.render("snippet_" + snippet);
+});
+
 module.exports = router;
