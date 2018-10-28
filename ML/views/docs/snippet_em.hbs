@@ -11,9 +11,44 @@
     or further, still unobserved, data points are to be assumed.
 </p>
 <p>
-    The algorithm works on any n-dimensional dataset by first performing an
-    estimate (expectation) to the initial mixture models and iteratively
-    improving (maximizing) the parameters of these models. These mixture models
-    are probabilistic models describing subpopulations. As such they are not
-    simply mutually exclusive sets and therefore the models allow for overlap.
+    Within clustering there is a division between two types: hard and soft (or
+    fuzzy) clustering. In hard clustering, an element either belongs to a
+    cluster or it does not. In soft clustering, on the other hand, elements can
+    belong to multiple clusters but with different degrees of belief, or
+    confidence. In order to statistically analyze soft clustering, mixture
+    models can be used.
 </p>
+<p>
+    Mixture models are a probabilistically sound way of analyzing soft
+    clustering cases. With this method, each cluster is described as a
+    generative model<a href="#_ftn1" name="_ftnref1" title="">[1]</a>, such as
+    a Gaussian or multinomial. However, the parameters of the model are unknown
+    (for example the mean and covariance in the case of a Gaussian model).
+</p>
+<p>
+    If the source cluster of each observation is known, the estimation of these
+    parameters is trivially done through a simple calculation. However, even
+    when not knowing the source, as is the case in a clustering problem, the
+    EM-algorithm will guess the cluster each point likely belongs to. This is
+    done by using the Baysal formulae, those of conditional probability.
+    However, in order to use these formulae, the parameters of the models need
+    to be known. This leads to a “chicken and egg” problem. The algorithm works
+    on any n-dimensional dataset by first performing a random estimate
+    (expectation) to the initial parameters and iteratively improving
+    (maximizing) them.
+</p>
+<div>
+    <br clear="all"/>
+    <hr align="left" size="1" width="33%"/>
+    <div id="ftn1">
+        <p>
+            <a href="#_ftnref1" name="_ftn1" title="">[1]</a>
+            In machine learning (and other forms of statistical classification)
+            there are two main approaches: generative and discriminative. Given
+            a target Y and an observation X, the generative model is a
+            statistical model of the joint probability distribution. Whereas
+            the discriminative model looks at conditional probability of Y
+            given X=x.
+        </p>
+    </div>
+</div>
