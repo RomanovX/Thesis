@@ -3,3 +3,178 @@
 <h1>
     Apriori Algorithm
 </h1>
+<p>
+    The Apriori algorithm is a machine learning algorithm used to find patterns
+    in large data sets. Specifically, the patterns of frequent item sets. At
+    its core it attempt to identify frequent item sets in order to generate
+    association rules used to describe general trends in the data. The
+    algorithm finds its roots in analyzing and predicting store transactions to
+    find products frequently bought together.
+</p>
+<p>
+    Every transaction, or customer purchase if looking at the example of a
+    store, is logged in a database. Consequently, a breadth-first search is
+    done to find all items having been purchased at least a percentage of
+    times; the threshold or support. These individual items are extended to
+    larger and larger item sets, given those item sets appear sufficiently
+    often in the database. Using these frequent item data sets, association
+    rules can be generated. The association rules can be described using
+    numerous measures. Among others, there are confidence, lift and conviction
+    [51].
+</p>
+<p>
+    Firstly, the confidence of an association rule indicating X leads to Y, or
+    <img
+            width="33"
+            height="30"
+            style="transform: translateY(15px);" 
+            src="/documents/concept.fld/image001.png"
+    />
+    , is the indication of how often the rule has found to be true. The
+    previously defined support, the indication of how often an item set appears
+    in the data set, can be described as:
+</p>
+<p>
+    <img
+            width="137"
+            height="50"
+            src="/documents/concept.fld/image002.png"
+    />
+</p>
+<p>
+    Where
+    <img
+            width="5"
+            height="30"
+            style="transform: translateY(15px);" 
+            src="/documents/concept.fld/image003.png"
+    />
+    is a transaction within the database of all transactions
+    <img
+            width="7"
+            height="30"
+            style="transform: translateY(15px);" 
+            src="/documents/concept.fld/image004.png"
+    />
+    . As a result, the confidence of the rule is the proportion of transactions
+    that contain set X, that also contain set Y:
+</p>
+<p>
+    <img
+            width="149"
+            height="50"
+            src="/documents/concept.fld/image005.png"
+    />
+</p>
+<p>
+    Where
+    <img
+            width="29"
+            height="30"
+            style="transform: translateY(15px);" 
+            src="/documents/concept.fld/image006.png"
+    />
+    is the union of the items in the two sets. Rewritten in probabilities, the
+    support can be seen as simply the probability of an event
+    <img
+            width="31"
+            height="30"
+            style="transform: translateY(15px);" 
+            src="/documents/concept.fld/image007.png"
+    />
+    , where
+    <img
+            width="13"
+            height="30"
+            style="transform: translateY(15px);" 
+            src="/documents/concept.fld/image008.png"
+    />
+    is a transaction containing item set X. However, since
+    <img
+            width="32"
+            height="30"
+            style="transform: translateY(15px);" 
+            src="/documents/concept.fld/image009.png"
+    />
+    regards the items in a set, it can rather be written as
+    <img
+            width="57"
+            height="30"
+            style="transform: translateY(15px);" 
+            src="/documents/concept.fld/image010.png"
+    />
+    . Linking to Bayesian formulae, the confidence can be seen as an estimate
+    of the conditional probability
+    <img
+            width="48"
+            height="30"
+            style="transform: translateY(15px);" 
+            src="/documents/concept.fld/image011.png"
+    />
+    . The drawback of the confidence measure is that it only takes the
+    popularity of itemset X into account.
+</p>
+<p>
+    The lift measure takes both item sets into consideration and compares their
+    dependence to each other to that expected if they were independent of each
+    other. It is defined as:
+</p>
+<p>
+    <img
+            width="179"
+            height="50"
+            src="/documents/concept.fld/image012.png"
+    />
+</p>
+<p>
+    A lift of 1 would indicate that occurrences of X and Y are independent of
+    each other and thus no rule can be drawn. The higher the value is above 1,
+    the larger the degree in which the occurrence of Y is dependent on that of
+    X and as such is potentially more useful for prediction. Note that a lift
+    below 1 actually indicates that X and Y have a negative impact on each
+    other.
+</p>
+<p>
+    Lastly, the conviction of a rule is an indication of the frequency of an
+    incorrect prediction. It is defined as:
+</p>
+<p>
+    <img
+            width="173"
+            height="50"
+            src="/documents/concept.fld/image013.png"
+    />
+</p>
+<p>
+    For example, a conviction value of 1.2 indicates that an incorrect
+    prediction occurs 20% more often than if the association was simply by
+    random chance.
+</p>
+<p>
+    The process of the Apriori focuses on first finding all possible datasets
+    which have a minimum support and then creating rules based on the
+    confidence. Depending on the implementation, either just the confidence can
+    be used as a baseline for the rule generation, or a number of measures
+    more. Note that there are more measures of interestingness than just those
+    described above, including, but not limited to, collective strength [52]
+    and leverage [53]. In [30], however, none of the measures other than the
+    confidence are used, which will as such be the starting point for this
+    concept.
+</p>
+<p>
+    The main drawback of the Apriori algorithm is that given the bottom up
+    approach, a large number of subsets are required to be generated. As such,
+    the number of database accesses are very high requiring it to be loaded
+    into memory entirely. Furthermore, the time complexity is obviously very
+    high. Consequently, numerous improved algorithms have been suggested.
+    However, its simplicity makes it much easier to implement on any sort of
+    database. This is interesting because whereas the algorithm is initially
+    only interesting for true transactional databases such as those resulting
+    from stores, the Apriori algorithm can be used to find patterns in any sort
+    of data set.
+</p>
+<p>
+    In the case of [30], the Apriori algorithm is used to analyze following
+    activities given the cluster of the current activity, as previously found
+    using the EM algorithm.
+</p>
