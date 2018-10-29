@@ -1027,11 +1027,6 @@ span.VoetnoottekstChar
 	margin:63.35pt 66.95pt 66.95pt 66.95pt;}
 div.WordSection1
 	{page:WordSection1;}
-@page WordSection2
-	{size:21.0cm 841.95pt;
-	margin:63.35pt 66.95pt 66.95pt 66.95pt;}
-div.WordSection2
-	{page:WordSection2;}
  /* List Definitions */
  ol
 	{margin-bottom:0cm;}
@@ -1047,220 +1042,110 @@ ul
 <div class=WordSection1>
 
 <h1 align=right style='text-align:right'><span lang=EN-US style='font-size:
-72.0pt'>3</span><span lang=EN-US><br>
-<a name="_Toc528515059">Concept design</a></span></h1>
+72.0pt'>4</span><span lang=EN-US><br>
+Implementation</span></h1>
 
-<p class=MsoNormal align=left style='margin-bottom:0cm;margin-bottom:.0001pt;
-text-align:left;line-height:normal'><span lang=EN-US>&nbsp;</span></p>
+<p class=MsoNormal><span lang=EN-US>The implementation is a major aspect in
+this report. In order to test the proposed concept, a number of things have to
+be done. First, a suitable platform has to be chosen. This platform should not
+only allow for all desired datasets to be supported, but preferably also allow
+for connection to a real-life application for field testing. Secondly, the
+algorithms of the conceptual design have to be implemented in code and linked
+to one another and to the data sources. Lastly, the implementation should
+provide some sort of reporting mechanism which allows analysis of the results.</span></p>
 
-<p class=MsoNormal><span lang=EN-US>The initial design is based on combining
-the ideas of two papers, </span><span
-lang=EN-US>[30], [41]</span><span lang=EN-US>. Consecutively this model is
-combined with knowledge of user values to extend the model and allow for
-statistical analysis in order to predict the most ideal moment for
-notification. First, the individual concepts are explained and consecutively
-the combined design.</span></p>
+<h2><span lang=EN-US>4.1<span style='font:7.0pt "Times New Roman"'>&nbsp; </span></span><span
+lang=EN-US>Platform</span></h2>
 
-<h2><span lang=EN-US>3.1<span style='font:7.0pt "Times New Roman"'>&nbsp; </span></span><span
-lang=EN-US>Activity prediction</span></h2>
+<p class=MsoNormal><span lang=EN-US>What platform to choose isn’t just
+dependent on what algorithm is chosen, or what libraries are available. More
+important is to see how the data is obtained. Keeping an open mind as to where
+data can come from, and not just restricting oneself to using premade datasets,
+allowing streaming data is important. Why? Because of the rapid rise in
+Internet of Things devices.</span></p>
 
-<p class=MsoNormal><span lang=EN-US>Activity prediction is done based on the
-TEREDA paper by Nazerfet et al. </span><span
-lang=EN-US>[30]</span><span lang=EN-US>. It focuses on two concepts to create a
-model for activity prediction; the Expectation Maximization </span><span
-lang=EN-US>[48]</span><span lang=EN-US> and Apriori </span><span
-lang=EN-US>[49], [50]</span><span lang=EN-US> algorithms.</span></p>
+<h3><span lang=EN-US>4.1.1<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
+</span></span><span lang=EN-US>Internet of Things</span></h3>
 
-<h3><a name="_Toc528515060"><span lang=EN-US>3.1.1<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span><span lang=EN-US>Expectation Maximization</span></a></h3>
+<p class=MsoNormal><span lang=EN-US>The field of activity recognition is a rapidly
+evolving one. This is mainly due to the exponential rise in Internet of Things
+(IoT) devices. Currently, there are over 17 billion connected devices in the
+world. Of these, there are over 7 billion IoT devices (so excluding
+smartphones, computers and similar) with over 6.5 million new devices being
+connected every day </span><span
+lang=EN-US>[54]</span><span lang=EN-US>. This is expected to grow to between 20
+and 200 billion within the next five to ten years. The promise of IoT doesn’t
+end at just connecting the devices to the internet. It is just the first step.</span></p>
 
-<p class=MsoNormal><span lang=EN-US>Expectation Maximization (EM) is a
-clustering algorithm which works iteratively to find maximum likelihood
-parameters of a statistical model. It is used when such parameters cannot be
-solved through equations directly. The reason for this may be missing data
-points, latent variables, or further, still unobserved, data points are to be
-assumed.</span></p>
+<p class=MsoNormal><span lang=EN-US>Advances in RF technology and low power
+computing will bring Internet-connectivity everywhere. Advances in Big Data and
+machine learning will unlock new business opportunities and models. The
+possibilities are nearly endless, but they all still lie quite out of reach
+from the direct consumer. However, specifically for activity recognition,
+suddenly a lot more data is available than there was 10 years ago. Consequently,
+more and more papers and implementations such as <b>&lt;fill in references&gt;</b>
+ are analyzing activity based on random sensor data.</span></p>
 
-<p class=MsoNormal><span lang=EN-US>Within clustering there is a division
-between two types: hard and soft (or fuzzy) clustering. In hard clustering, an
-element either belongs to a cluster or it does not. In soft clustering, on the
-other hand, elements can belong to multiple clusters but with different degrees
-of belief, or confidence. In order to statistically analyze soft clustering,
-mixture models can be used.</span></p>
+<p class=MsoNormal><span lang=EN-US>Whether the activity data or the sensor
+data is available, in any case a prediction can be made on past events. As long
+as the event corresponding to the deadline is known before which the
+notification should have been presented, any form of data should fit within the
+design. As such, a server based solution, preferably in the cloud, seems most
+logical.</span></p>
 
-<p class=MsoNormal><span lang=EN-US>Mixture models are a probabilistically
-sound way of analyzing soft clustering cases. With this method, each cluster is
-described as a generative model<a href="#_ftn1" name="_ftnref1" title=""><span
+<h3><span lang=EN-US>4.1.2<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
+</span></span><span lang=EN-US>Programming language</span></h3>
+
+<p class=MsoNormal><span lang=EN-US>When it comes to implementing machine
+learning algorithms, there are several go to languages. The five most used
+languages </span><span
+lang=EN-US>[55]</span><span lang=EN-US>, in order, are:</span></p>
+
+<p class=MsoListParagraphCxSpFirst style='margin-left:53.0pt;text-indent:-18.0pt'><span
+lang=EN-US style='font-family:"Calibri",sans-serif'>-<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang=EN-US>Python</span></p>
+
+<p class=MsoListParagraphCxSpMiddle style='margin-left:53.0pt;text-indent:-18.0pt'><span
+lang=EN-US style='font-family:"Calibri",sans-serif'>-<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang=EN-US>C/C++</span></p>
+
+<p class=MsoListParagraphCxSpMiddle style='margin-left:53.0pt;text-indent:-18.0pt'><span
+lang=EN-US style='font-family:"Calibri",sans-serif'>-<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang=EN-US>Java</span></p>
+
+<p class=MsoListParagraphCxSpMiddle style='margin-left:53.0pt;text-indent:-18.0pt'><span
+lang=EN-US style='font-family:"Calibri",sans-serif'>-<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang=EN-US>R</span></p>
+
+<p class=MsoListParagraphCxSpLast style='margin-left:53.0pt;text-indent:-18.0pt'><span
+lang=EN-US style='font-family:"Calibri",sans-serif'>-<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang=EN-US>JavaScript</span></p>
+
+<p class=MsoNormal><span lang=EN-US>While there are many other options, they
+fall below a 5% mark of prioritization in the field of machine learning. Python
+takes the clear lead in this field. This is due to the large number of readily
+available libraries. This dramatically decreases the time required to implement
+machine learning algorithms in applications. However, regardless of popularity it
+is shown that professional background is key to choosing a language.</span></p>
+
+<p class=MsoNormal><span lang=EN-US>For now ignoring the fact of whether the
+programmer has any existing proficiencies, it is important to note that there
+is no best language to use for machine learning and it is important to take the
+goal into consideration. In this case the goal is to create a server based
+cloud platform. Whereas the algorithms can still be run on any language, the
+web part and a possible API<a href="#_ftn1" name="_ftnref1" title=""><span
 class=MsoFootnoteReference><span class=MsoFootnoteReference><span lang=EN-US
-style='font-size:12.0pt;line-height:130%;font-family:"Times New Roman",serif'>[1]</span></span></span></a>,
-such as a Gaussian or multinomial. However, the parameters of the model are
-unknown (for example the mean and covariance in the case of a Gaussian model). </span></p>
+style='font-size:12.0pt;line-height:130%;font-family:"Times New Roman",serif'>[1]</span></span></span></a>
+interface are likely to be implemented in JavaScript.</span></p>
 
-<p class=MsoNormal><span lang=EN-US>If the source cluster of each observation
-is known, the estimation of these parameters is trivially done through a simple
-calculation. However, even when not knowing the source, as is the case in a
-clustering problem, the EM-algorithm will guess the cluster each point likely
-belongs to. This is done by using the Baysal formulae, those of conditional
-probability. However, in order to use these formulae, the parameters of the
-models need to be known. This leads to a “chicken and egg” problem. The
-algorithm works on any n-dimensional dataset by first performing a random
-estimate (expectation) to the initial parameters and iteratively improving
-(maximizing) them. </span></p>
+<h3><span lang=EN-US>4.1.3<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
+</span></span><span lang=EN-US>Set-up</span></h3>
 
-<h3><a name="_Toc528515061"><span lang=EN-US>3.1.2<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
-</span></span><span lang=EN-US>Apriori algorithm</span></a></h3>
+<p class=MsoNormal><span lang=EN-US>Taking the above choices into consideration
+and looking at the current professional landscape, there is a single, simple
+way forward. </span></p>
 
-<p class=MsoNormal><span lang=EN-US>The Apriori algorithm is a machine learning
-algorithm used to find patterns in large data sets. Specifically, the patterns
-of frequent item sets. At its core it attempt to identify frequent item sets in
-order to generate association rules used to describe general trends in the
-data. The algorithm finds its roots in analyzing and predicting store
-transactions to find products frequently bought together.</span></p>
-
-<p class=MsoNormal><span lang=EN-US>Every transaction, or customer purchase if
-looking at the example of a store, is logged in a database. Consequently, a
-breadth-first search is done to find all items having been purchased at least a
-percentage of times; the threshold or support. These individual items are extended
-to larger and larger item sets, given those item sets appear sufficiently often
-in the database. Using these frequent item data sets, association rules can be
-generated. The association rules can be described using numerous measures.
-Among others, there are confidence, lift and conviction </span><span
-lang=EN-US>[51]</span><span lang=EN-US>. </span></p>
-
-<p class=MsoNormal><span lang=EN-US>Firstly, the confidence of an association
-rule indicating X leads to Y, or </span><span
-lang=EN-US style='font-size:12.0pt;line-height:130%;font-family:"Calibri",sans-serif;
-color:black;position:relative;top:7.0pt'><img width=33 height=18
-src="concept.fld/image001.png"></span><span lang=EN-US>, is the indication of
-how often the rule has found to be true.</span><span lang=EN-US> The previously
-defined support, the indication of how often an item set appears in the data
-set, can be described as:</span></p>
-
-<p class=MsoNormal><span
-lang=EN-US style='font-size:12.0pt;line-height:130%;font-family:"Calibri",sans-serif;
-color:black'><img width=137 height=35 src="concept.fld/image002.png"></span></p>
-
-<p class=MsoNormal><span lang=EN-US>Where </span><span
-lang=EN-US style='font-size:12.0pt;line-height:130%;font-family:"Calibri",sans-serif;
-color:black;position:relative;top:7.0pt'><img width=5 height=18
-src="concept.fld/image003.png"></span><span lang=EN-US> is a transaction within
-the database of all transactions </span><span
-lang=EN-US style='font-size:12.0pt;line-height:130%;font-family:"Calibri",sans-serif;
-color:black;position:relative;top:7.0pt'><img width=7 height=18
-src="concept.fld/image004.png"></span><span lang=EN-US>. As a result, the
-confidence of the rule is the proportion of transactions that contain set X,
-that also contain set Y:</span></p>
-
-<p class=MsoNormal><span
-lang=EN-US style='font-size:12.0pt;line-height:130%;font-family:"Calibri",sans-serif;
-color:black'><img width=149 height=35 src="concept.fld/image005.png"></span></p>
-
-<p class=MsoNormal><span lang=EN-US>Where </span><span
-lang=EN-US style='font-size:12.0pt;line-height:130%;font-family:"Calibri",sans-serif;
-color:black;position:relative;top:7.0pt'><img width=29 height=18
-src="concept.fld/image006.png"></span><span lang=EN-US> is the union of the
-items in the two sets. Rewritten in probabilities, the support can be seen as
-simply the probability of an event </span><span
-lang=EN-US style='font-size:12.0pt;line-height:130%;font-family:"Calibri",sans-serif;
-color:black;position:relative;top:7.0pt'><img width=31 height=18
-src="concept.fld/image007.png"></span><span lang=EN-US>, where </span><span
-lang=EN-US style='font-size:12.0pt;line-height:130%;font-family:"Calibri",sans-serif;
-color:black;position:relative;top:7.0pt'><img width=13 height=18
-src="concept.fld/image008.png"></span><span lang=EN-US> is a transaction
-containing item set X. However, since </span><span
-lang=EN-US style='font-size:12.0pt;line-height:130%;font-family:"Calibri",sans-serif;
-color:black;position:relative;top:7.0pt'><img width=32 height=18
-src="concept.fld/image009.png"></span><span lang=EN-US>regards the items in a
-set, it can rather be written as </span><span
-lang=EN-US style='font-size:12.0pt;line-height:130%;font-family:"Calibri",sans-serif;
-color:black;position:relative;top:7.0pt'><img width=57 height=18
-src="concept.fld/image010.png"></span><span lang=EN-US>. Linking to Bayesian
-formulae, the confidence can be seen as an estimate of the conditional
-probability </span><span
-lang=EN-US style='font-size:12.0pt;line-height:130%;font-family:"Calibri",sans-serif;
-color:black;position:relative;top:7.0pt'><img width=48 height=18
-src="concept.fld/image011.png"></span><span lang=EN-US>. The drawback of the
-confidence measure is that it only takes the popularity of itemset X into
-account.</span></p>
-
-<p class=MsoNormal><span lang=EN-US>The lift measure takes both item sets into
-consideration and compares their dependence to each other to that expected if
-they were independent of each other. It is defined as:</span></p>
-
-<p class=MsoNormal><span
-lang=EN-US style='font-size:12.0pt;line-height:130%;font-family:"Calibri",sans-serif;
-color:black'><img width=179 height=35 src="concept.fld/image012.png"></span></p>
-
-<p class=MsoNormal><span lang=EN-US>A lift of 1 would indicate that occurrences
-of X and Y are independent of each other and thus no rule can be drawn. The
-higher the value is above 1, the larger the degree in which the occurrence of Y
-is dependent on that of X and as such is potentially more useful for
-prediction. Note that a lift below 1 actually indicates that X and Y have a
-negative impact on each other.</span></p>
-
-<p class=MsoNormal><span lang=EN-US>Lastly, the conviction of a rule is an
-indication of the frequency of an incorrect prediction. It is defined as:</span></p>
-
-<p class=MsoNormal><span
-lang=EN-US style='font-size:12.0pt;line-height:130%;font-family:"Calibri",sans-serif;
-color:black'><img width=173 height=35 src="concept.fld/image013.png"></span></p>
-
-<p class=MsoNormal><span lang=EN-US>For example, a conviction value of 1.2
-indicates that an incorrect prediction occurs 20% more often than if the
-association was simply by random chance.</span></p>
-
-<p class=MsoNormal><span lang=EN-US>The process of the Apriori focuses on first
-finding all possible datasets which have a minimum support and then creating
-rules based on the confidence. Depending on the implementation, either just the
-confidence can be used as a baseline for the rule generation, or a number of
-measures more. Note that there are more measures of interestingness than just
-those described above, including, but not limited to, collective strength </span><span
-lang=EN-US>[52]</span><span lang=EN-US> and leverage </span><span
-lang=EN-US>[53]</span><span lang=EN-US>. In </span><span
-lang=EN-US>[30]</span><span lang=EN-US>, however, none of the measures other
-than the confidence are used, which will as such be the starting point for this
-concept.</span></p>
-
-<p class=MsoNormal><span lang=EN-US>The main drawback of the Apriori algorithm
-is that given the bottom up approach, a large number of subsets are required to
-be generated. As such, the number of database accesses are very high requiring
-it to be loaded into memory entirely. Furthermore, the time complexity is
-obviously very high. Consequently, numerous improved algorithms have been
-suggested. However, its simplicity makes it much easier to implement on any
-sort of database. This is interesting because whereas the algorithm is initially
-only interesting for true transactional databases such as those resulting from
-stores, the Apriori algorithm can be used to find patterns in any sort of data
-set.</span></p>
-
-<p class=MsoNormal><span lang=EN-US>In the case of </span><span
-lang=EN-US>[30]</span><span lang=EN-US>, the Apriori algorithm is used to
-analyze following activities given the cluster of the current activity, as
-previously found using the EM algorithm.</span></p>
-
-<h2><span lang=EN-US>3.2<span style='font:7.0pt "Times New Roman"'>&nbsp; </span></span><span
-lang=EN-US>Value based design</span></h2>
-
-<p class=MsoNormal><span lang=EN-US>WIP</span></p>
-
-<h2><span lang=EN-US>3.3<span style='font:7.0pt "Times New Roman"'>&nbsp; </span></span><span
-lang=EN-US>Goal reasoning</span></h2>
-
-<p class=MsoNormal><span lang=EN-US>WIP</span></p>
-
-<h2><span lang=EN-US>3.4<span style='font:7.0pt "Times New Roman"'>&nbsp; </span></span><span
-lang=EN-US>Combining into a design</span></h2>
-
-<p class=MsoNormal><span lang=EN-US>WIP</span></p>
-
-</div>
-
-<span lang=EN-US style='font-size:10.0pt;line-height:130%;font-family:"Times New Roman",serif'><br
-clear=all style='page-break-before:auto'>
-</span>
-
-<div class=WordSection2>
-
-<p class=MsoNormal><span lang=EN-US>&nbsp;</span></p>
+<p class=MsoNormal><span lang=EN-US>Node.js</span></p>
 
 </div>
 
@@ -1273,11 +1158,7 @@ clear=all style='page-break-before:auto'>
 <p class=MsoFootnoteText><a href="#_ftnref1" name="_ftn1" title=""><span
 class=MsoFootnoteReference><span lang=EN-US><span class=MsoFootnoteReference><span
 lang=EN-US style='font-size:10.0pt;line-height:130%;font-family:"Times New Roman",serif'>[1]</span></span></span></span></a><span
-lang=EN-US> In machine learning (and other forms of statistical classification)
-there are two main approaches: generative and discriminative. Given a target Y
-and an observation X, the generative model is a statistical model of the joint
-probability distribution. Whereas the discriminative model looks at conditional
-probability of Y given X=x.</span></p>
+lang=EN-US> See section <b>&lt;fill in later&gt;</b></span></p>
 
 </div>
 
