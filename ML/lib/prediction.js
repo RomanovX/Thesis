@@ -3,24 +3,43 @@ const em = require('expectation-maximization');
 const ExpectationMaximization = require('ml-expectation-maximization').ExpectationMaximization;
 const math = require('mathjs');
 const Apriori = require('apriori');
+const extend = require('extend');
+
+/**
+ * @param activity 			{Object} 	Activity Object
+ * @param activity.start	{Date}		Date object describing start
+ *
+ * @returns 				{Number}	Starting time in minutes since start of day
+ */
+function getMinutesSinceMidnight(activity) {
+	const hours = activity.start.getHours();
+	const minutes = activity.start.getMinutes() + (hours * 60);
+	//const seconds = activity.start.getSeconds() + (minutes * 60);
+
+	return minutes;
+}
 
 /**
  * @param activities {Array.<{activity: String, start: Object, end: Object, duration: Number}>}	Array of activity objects
  */
-
 function calculateClusters(activities) {
-	const rawStarts = activities.map(event => {
-		// Calculate seconds since start of day
-		const hours = event.start.getHours();
-		const minutes = event.start.getMinutes() + (hours * 60);
-		//const seconds = event.start.getSeconds() + (minutes * 60);
 
-		return [minutes];
-	});
+	// Initialize all resulting arrays
+	const rawStarts = [];
+	const rawDurations = [];
+	const linkedActivities = [];
 
-	const rawDurations = activities.map(event => {
-		return event.duration;
-	});
+	for (let i = 0; i < activities.length; i++) {
+		rawStarts.push([
+			getMinutesSinceMidnight(activities[i])
+		]);
+
+		rawDurations.push(activities[i].duration);
+
+		// Note: No need for a deep copy since we are adding, not changing, information
+		const nextActivity = (i < activities.length - 1) ? activities[i - 1].activity : null;
+		linkedActivities.push(extend({}, activities[i], {nextActivity: nextActivity}))
+	}
 
 	const minSigma = Math.pow(10,-6);
 	let nClusters = 1;

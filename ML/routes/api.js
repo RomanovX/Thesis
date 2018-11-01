@@ -13,6 +13,7 @@ const Cluster = require('../models/cluster');
 
 router.get('/activities', function(req, res, next) {
 	fiber(() => {
+		// If there are no query parameters sent, send the number and unique types of activities back
 		if (!req.params || (Object.keys(req.params).length === 0 && req.params.constructor === Object)) {
 			const count = await(Activity.countDocuments({}, defer()));
 			const activities = await(Activity.distinct('activity', defer()));
@@ -21,6 +22,7 @@ router.get('/activities', function(req, res, next) {
 			return;
 		}
 
+		// Else, do a search with the parameters (note: not checking which parameters is an unsafe approach)
 		const activities = await(Activity.find(req.params, defer()));
 		res.status(200).send(activities);
 	}, (err) => {
@@ -33,6 +35,7 @@ router.get('/activities', function(req, res, next) {
 
 router.get('/activities/:id', function(req, res, next) {
 	fiber(() => {
+		// Return the details of the specific activity (by id)
 		const activity = await(Activity.findOne({_id: req.params.id}, defer()));
 		res.status(200).send(activity);
 	}, (err) => {
