@@ -20,6 +20,26 @@ function getMinutesSinceMidnight(activity) {
 }
 
 /**
+ * @param dataArray			{Array} 					Array containing data
+ * @param indices			{Array.<Number>}			Array describing which cluster each entry belongs to
+ *
+ * @returns 				{Array.<Array.<Number>>}	Two dimensional array, where each sub array are the entries for the cluster of that index
+ */
+function sortDataPerCluster(dataArray, indices) {
+	const result = [];
+
+	for (let i = 0; i < dataArray.length; i++) {
+		const key = +indices[i];
+		if(!result[key]) {
+			result[key] = [];
+		}
+		result[key].push(dataArray[i]);
+	}
+
+	return result;
+}
+
+/**
  * @param activities {Array.<{activity: String, start: Object, end: Object, duration: Number}>}	Array of activity objects
  */
 function calculateClusters(activities) {
@@ -27,7 +47,6 @@ function calculateClusters(activities) {
 	// Initialize all resulting arrays
 	const rawStarts = [];
 	const rawDurations = [];
-	const linkedActivities = [];
 
 	for (let i = 0; i < activities.length; i++) {
 		rawStarts.push([
@@ -35,10 +54,6 @@ function calculateClusters(activities) {
 		]);
 
 		rawDurations.push(activities[i].duration);
-
-		// Note: No need for a deep copy since we are adding, not changing, information
-		const nextActivity = (i < activities.length - 1) ? activities[i - 1].activity : null;
-		linkedActivities.push(extend({}, activities[i], {nextActivity: nextActivity}))
 	}
 
 	const minSigma = Math.pow(10,-6);
@@ -62,26 +77,35 @@ function calculateClusters(activities) {
 		nClusters++;
 	}
 
-	const clusterIndices = finalModel.predict(rawStarts);
-	const clusterElements = [];
+	// Get the index of the cluster to which each entry now most likely belongs
+	const indices = finalModel.predict(rawStarts);
 
-	for (let i = 0; i < rawDurations.length; i++) {
-		const key = +clusterIndices[i];
-		if(!clusterElements[key]) {
-			clusterElements[key] = [];
-		}
-		clusterElements[key].push(rawDurations[i]);
-	}
+	// Generate sorted arrays with raw durations and the activities for each cluster
+	const clusterDurations = sortDataPerCluster(rawDurations, indices);
+	const clusterActivities = sortDataPerCluster(activities, indices);
 
-	const durationParameters = clusterElements.map(durationArray => {
+	// Calculate duration parameters
+	const durationParameters = clusterDurations.map(durationArray => {
 		return {mean: math.mean(durationArray), sigma: math.var(durationArray)};
 	});
+
+	for (let i = 0; i < finalClusters.length; i++) {
+		const cluster = finalClusters[i];
+		const activities = clusterActivities[i];
+
+		const a = activities[0];
+
+		
+
+	}
 
 
 	return {model: finalModel, clusters: finalClusters, durations: durationParameters};
 }
 
-function predict(cluster) {}
+function predict(cluster) {
+
+}
 
 module.exports = {
 	calculateClusters: calculateClusters,

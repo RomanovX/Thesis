@@ -194,7 +194,15 @@ router.post('/clusters', function(req, res, next) {
 
 		activityNames.forEach(activity => {
 			const activities = await(Activity.find({activity: activity}, defer()));
-			const result = em.calculateClusters(activities);
+
+			// TODO: not at all efficient in terms of database usage
+			const linkedActivities = activities.map(activity => {
+				const date = activity.start;
+				const next = await(Activity.find({"user": activity.user, "start":{$gt: activity.start}}, defer()).sort({"time":1}).limit(1).exec(defer()));
+				activity.nextActivity = (next.length > 0) ? next[0].activity : null;
+				return activity;
+			});
+			const result = em.calculateClusters(linkedActivities);
 			result.clusters.forEach((cluster, i) => {
 				clusterArray.push({
 					activity: activity,
