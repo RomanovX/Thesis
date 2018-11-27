@@ -8,7 +8,8 @@ const clusterSchema = new mongoose.Schema({
 	user: {
 		type: String,
 		default: 0
-	}
+	},
+	predictionModel: Object
 });
 
 module.exports = mongoose.model('Cluster', clusterSchema);

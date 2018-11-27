@@ -93,10 +93,21 @@ function calculateClusters(activities) {
 		const cluster = finalClusters[i];
 		const activities = clusterActivities[i];
 
-		const a = activities[0];
+		const probabilities = {};
+		const singleProb = 1/activities.length;
+		for (let j = 0; j < activities.length; j++) {
+			const nextActivity = activities[j].nextActivity;
+			if (!nextActivity) {
+				continue;
+			}
+			if (typeof probabilities[nextActivity] === "undefined") {
+				probabilities[nextActivity] = singleProb;
+			} else {
+				probabilities[nextActivity] += singleProb;
+			}
+		}
 
-		
-
+		cluster.predictionModel = probabilities
 	}
 
 
