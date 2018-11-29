@@ -3,7 +3,6 @@ const em = require('expectation-maximization');
 const ExpectationMaximization = require('ml-expectation-maximization').ExpectationMaximization;
 const math = require('mathjs');
 const Apriori = require('apriori');
-const extend = require('extend');
 
 /**
  * @param activity 			{Object} 	Activity Object
@@ -40,10 +39,9 @@ function sortDataPerCluster(dataArray, indices) {
 }
 
 /**
- * @param activities {Array.<{activity: String, start: Object, end: Object, duration: Number}>}	Array of activity objects
+ * @param activities {Array.<{activity: String, start: Object, end: Object, duration: Number, user: String}>}	Array of activity objects
  */
 function calculateClusters(activities) {
-
 	// Initialize all resulting arrays
 	const rawStarts = [];
 	const rawDurations = [];
@@ -82,42 +80,91 @@ function calculateClusters(activities) {
 
 	// Generate sorted arrays with raw durations and the activities for each cluster
 	const clusterDurations = sortDataPerCluster(rawDurations, indices);
-	const clusterActivities = sortDataPerCluster(activities, indices);
 
 	// Calculate duration parameters
 	const durationParameters = clusterDurations.map(durationArray => {
 		return {mean: math.mean(durationArray), sigma: math.var(durationArray)};
 	});
 
-	for (let i = 0; i < finalClusters.length; i++) {
-		const cluster = finalClusters[i];
-		const activities = clusterActivities[i];
-
-		const probabilities = {};
-		const singleProb = 1/activities.length;
-		for (let j = 0; j < activities.length; j++) {
-			const nextActivity = activities[j].nextActivity;
-			if (!nextActivity) {
-				continue;
-			}
-			if (typeof probabilities[nextActivity] === "undefined") {
-				probabilities[nextActivity] = singleProb;
-			} else {
-				probabilities[nextActivity] += singleProb;
-			}
-		}
-
-		cluster.predictionModel = probabilities
-	}
-
-
-	return {model: finalModel, clusters: finalClusters, durations: durationParameters};
+	return {model: finalModel.toJSON(), clusters: finalClusters, durations: durationParameters};
 }
 
-function predict(cluster) {
+/**
+ * @param activities 	{Array.<{activity: String, start: Object, end: Object, duration: Number, user: String}>}	Array of activity objects
+ * @param clusterModels	{Array.<{activity: String, model: Object, user: String}>}									Array of clusterModels
+ *
+ * @returns 			{Array.<{activity: String, user: String, nextCluster: Array.<Object>, totalCount: Number}>}	Name of predicted activity
+ */
+function calculatePredictionModels(activities, clusterModels) {
+	// TODO: Rewrite dataContainer to Map
+	const dataContainer = {};
 
+	// Transform into a workable model
+	clusterModels.forEach(cmDescription => {
+		const model = ExpectationMaximization.load(cmDescription.model);
+		const activity = cmDescription.activity;
+
+		if (dataContainer[activity]) {
+			throw Error('Multiple cluster models for the same activity: ' + activity);
+		}
+
+		dataContainer[activity] = {
+			user: cmDescription.user,
+			activity: activity,
+			model: model,
+			entries: [],
+			nextClusters: {},
+			totalCount: 0
+		}
+	});
+
+	// TODO: this and the one below can be combined into one loop
+	activities.forEach((entry, index) => {
+		const rawStart = getMinutesSinceMidnight(entry);
+		const dc = dataContainer[entry.activity];
+		const clusterIndex = dc.model.predict([[rawStart]]);
+
+		if(!dc.entries[clusterIndex]) {
+			dc.entries[clusterIndex] = [];
+		}
+		entry.clusterIndex = clusterIndex;
+
+		if (index < activities.length - 1) {
+			entry.nextActivity = activities[index + 1];
+		}
+		dc.entries[clusterIndex].push(entry);
+	});
+
+	Object.keys(dataContainer).forEach(activity => {
+		dataContainer[activity].entries.forEach(cluster => {
+			cluster.forEach(entry => {
+				const nextClusters = dataContainer[activity].nextClusters;
+				const next = entry.nextActivity;
+				if(!next) {
+					return;
+				}
+				const key = next.activity + "_" + next.clusterIndex;
+
+				if (!nextClusters[key]) {
+					nextClusters[key] = 1;
+				} else {
+					nextClusters[key]++;
+				}
+
+				dataContainer[activity].totalCount++;
+			})
+		});
+
+		// Delete entries since we do not want to store them
+		delete dataContainer[activity].entries;
+		delete dataContainer[activity].model;
+	});
+
+	const a = Object.entries(dataContainer);
+	return Object.values(dataContainer);
 }
 
 module.exports = {
 	calculateClusters: calculateClusters,
+	predict: calculatePredictionModels,
 };

@@ -4,6 +4,7 @@ const activitySchema = new mongoose.Schema({
 	activity: String,
 	start: Date,
 	end: Date,
+	rawStart: Number,
 	duration: Number,
 	user: {
 		type: String,

@@ -42,10 +42,18 @@ $(document).ready(function() {
 		});
 	});
 
+	const spinner = $('#spinner').hide();
+
 	$('#resetClusters').click(function() {
 		$.ajax({
 			type: 'post',
 			url: 'api/v1/clusters',
+			beforeSend: function() {
+				spinner.show();
+			},
+			complete: function() {
+				spinner.hide();
+			},
 			success: function() {
 				window.location.reload();
 			}

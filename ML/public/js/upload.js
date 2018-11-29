@@ -9,7 +9,6 @@ $(document).ready(function() {
 
 	document.getElementById('startTime').value = document.getElementById('endTime').value = time;
 
-
 	$('#uploadForm').submit(function(e) {
 		e.preventDefault();
 		$.ajax({
@@ -30,7 +29,7 @@ $(document).ready(function() {
 		$.ajax({
 			type: 'POST',
 			url: 'api/v1/activities/bulk',
-			data: new FormData($(this)[0]),
+			data: new FormData(this),
 			cache: false,
 			contentType: false,
 			processData: false,

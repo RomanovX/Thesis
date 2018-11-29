@@ -14,6 +14,10 @@ router.get('/about', function(req, res, next) {
 	res.render('about', { page: 'About'});
 });
 
+router.get('/testing', function(req, res, next) {
+	res.render('testing', { page: 'Testing', scripts: [{script: '/js/testing.js'}]});
+});
+
 router.get('/upload', function(req, res, next) {
 	res.render('upload', { page: 'Upload', scripts: [{script: '/js/upload.js'}]});
 });
