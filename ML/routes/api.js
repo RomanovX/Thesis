@@ -6,6 +6,7 @@ const fs = require('fs');
 
 const log = require('../lib/log');
 const prediction = require('../lib/prediction');
+const util = require('../lib/util');
 const Activity = require('../models/activity');
 const Cluster = require('../models/cluster');
 const ClusterModel = require('../models/clusterModel');
@@ -188,6 +189,7 @@ router.get('/clusters', function(req, res, next) {
 	});
 });
 
+// TODO: Rewrite as function per user
 router.post('/clusters', function(req, res, next) {
 	fiber(() => {
 		if (req.body && !(Object.keys(req.body).length === 0 && req.body.constructor === Object)) {
@@ -237,6 +239,8 @@ router.post('/clusters', function(req, res, next) {
 	});
 });
 
+
+// TODO: Move predictionmodel making directly after clustering
 router.post('/predict', function(req, res, next) {
 	fiber(() => {
 		if (!req.body || !req.body.user) {
@@ -249,10 +253,20 @@ router.post('/predict', function(req, res, next) {
 		const activities = await(Activity.find({user: user}).sort({"time":1}).exec(defer()));
 		const clusterModels = await(ClusterModel.find({user: user}, defer()));
 
-		const predictionModels = prediction.predict(activities, clusterModels);
+		const predictionModels = prediction.calculatePredictionModels(activities, clusterModels);
 
 		await(PredictionModel.remove({user: user}, defer()));
-		await(PredictionModel.insertMany(predictionModels, defer()));
+		await(PredictionModel.insertMany(Object.values(predictionModels), defer()));
+
+
+		// prediction
+
+		// const lastActivity = await(Activity.find({user: user}).sort({"time":-1}).limit(1).exec(defer()));
+		// const clusterModel = util.arrToObj(clusterModels.find(cm => cm.activity === lastActivity.activity), 'activity');
+		// const model = clusterModels.find(cm => cm.activity === lastActivity.activity);
+		//
+		// util.arrToObj(clusterModels);
+
 
 		res.status(200).send();
 	}, (err) => {

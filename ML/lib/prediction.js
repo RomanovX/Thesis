@@ -108,12 +108,14 @@ function calculatePredictionModels(activities, clusterModels) {
 			throw Error('Multiple cluster models for the same activity: ' + activity);
 		}
 
+		const nextClustersPrefab = Array.from({ length: model.numClusters }, () => new Object({count: 0}));
+
 		dataContainer[activity] = {
 			user: cmDescription.user,
 			activity: activity,
 			model: model,
 			entries: [],
-			nextClusters: {},
+			nextClusters: nextClustersPrefab,
 			totalCount: 0
 		}
 	});
@@ -136,9 +138,10 @@ function calculatePredictionModels(activities, clusterModels) {
 	});
 
 	Object.keys(dataContainer).forEach(activity => {
-		dataContainer[activity].entries.forEach(cluster => {
-			cluster.forEach(entry => {
-				const nextClusters = dataContainer[activity].nextClusters;
+		dataContainer[activity].entries.forEach((clusterEntries, clusterIdx) => {
+			clusterEntries.forEach(entry => {
+				const nextClusters = dataContainer[activity].nextClusters[clusterIdx];
+
 				const next = entry.nextActivity;
 				if(!next) {
 					return;
@@ -151,6 +154,10 @@ function calculatePredictionModels(activities, clusterModels) {
 					nextClusters[key]++;
 				}
 
+				if (!nextClusters.count) {
+					nextClusters.count = 0;
+				}
+				nextClusters.count++;
 				dataContainer[activity].totalCount++;
 			})
 		});
@@ -160,11 +167,10 @@ function calculatePredictionModels(activities, clusterModels) {
 		delete dataContainer[activity].model;
 	});
 
-	const a = Object.entries(dataContainer);
-	return Object.values(dataContainer);
+	return dataContainer;
 }
 
 module.exports = {
 	calculateClusters: calculateClusters,
-	predict: calculatePredictionModels,
+	calculatePredictionModels: calculatePredictionModels,
 };
