@@ -1,23 +1,45 @@
 $(document).ready(function() {
-	const spinner = $('#spinner').hide();
+	const predictSpinner = $('#predictSpinner').hide();
+	const momentSpinner = $('#momentSpinner').hide();
 
-	$('#predict').submit(function(e) {
+	$('#predict').click(function(e) {
 		e.preventDefault();
+		const user = $('#user').val();
 		$.ajax({
-			type: 'post',
-			url: 'api/v1/predict',
-			data: $(this).serialize(),
+			type: 'get',
+			url: `api/v1/activity/next?user=${user}`,
 			beforeSend: function() {
-				spinner.show();
+				predictSpinner.show();
 			},
 			complete: function() {
-				spinner.hide();
+				predictSpinner.hide();
 			},
-			success: function() {
-				$('#predictStatus').text("Your next activity is predicted to be: ..........")
+			success: function(xhr) {
+				$('#status').text("Your next activity is predicted to be:\n" + JSON.stringify(xhr))
 			},
 			error: function(xhr) {
-				$('#predictStatus').text("Error generating prediction. Error message: " + (xhr.responseText || xhr.statusText))
+				$('#status').text("Error getting prediction. Error message: " + (xhr.responseText || xhr.statusText))
+			},
+		});
+	})
+
+	$('#moment').submit(function(e) {
+		e.preventDefault();
+		const user = $('#user').val();
+		$.ajax({
+			type: 'get',
+			url: `api/v1/moment?user=${user}`,
+			beforeSend: function() {
+				momentSpinner.show();
+			},
+			complete: function() {
+				momentSpinner.hide();
+			},
+			success: function() {
+				$('#status').text("Your ideal moment would be:\n" + JSON.stringify(xhr))
+			},
+			error: function(xhr) {
+				$('#status').text("Error getting moment. Error message: " + (xhr.responseText || xhr.statusText))
 			},
 		});
 	})

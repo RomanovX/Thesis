@@ -6,14 +6,12 @@ const fs = require('fs');
 
 const log = require('../lib/log');
 const prediction = require('../lib/prediction');
-const util = require('../lib/util');
 const Activity = require('../models/activity');
 const Cluster = require('../models/cluster');
 const ClusterModel = require('../models/clusterModel');
 const PredictionModel = require('../models/predictionModel');
 
 // TODO: Rewrite all per user
-
 router.get('/activities', function(req, res, next) {
 	fiber(() => {
 		// If there are no query parameters sent, send the number and unique types of activities back
@@ -189,7 +187,6 @@ router.get('/clusters', function(req, res, next) {
 	});
 });
 
-// TODO: Rewrite as function per user
 router.post('/clusters', function(req, res, next) {
 	fiber(() => {
 		if (req.body && !(Object.keys(req.body).length === 0 && req.body.constructor === Object)) {
@@ -200,35 +197,54 @@ router.post('/clusters', function(req, res, next) {
 		const activityNames = await(Activity.distinct('activity', defer()));
 		const users = await(Activity.distinct('user', defer()));
 
-		const clusterArray = [];
-		const clusterModelArray = [];
+		// Storage arrays for data spanning all users
+		const clusters = [];
+		const clusterModels = [];
+		let predictionModels = [];
 
 		users.forEach(user => {
+			log.i(`Calculating clusters for user: ${user}`);
+			const userClusterModels = [];
 			activityNames.forEach(activity => {
-				const activities = await(Activity.find({activity: activity}, defer()));
-				const result = prediction.calculateClusters(activities);
+				log.v(`Processing activity: ${activity}`);
+				const entries = await(Activity.find({user: user, activity: activity}, defer()));
+				const result = prediction.calculateClusters(entries);
 				result.clusters.forEach((cluster, i) => {
-					clusterArray.push({
+					const newCluster = {
 						user: user,
 						activity: activity,
 						parameters: cluster,
 						duration: result.durations[i],
-					})
+					};
+					clusters.push(newCluster);
 				});
 
-				clusterModelArray.push({
+				const newClusterModel = {
 					user: user,
 					activity: activity,
 					model: result.model
-				});
+				};
+				userClusterModels.push(newClusterModel);
+				clusterModels.push(newClusterModel);
 			});
+
+			log.i(`Calculating prediction models`);
+			const userActivities = await(Activity.find({user: user}).sort({start: 1}).exec(defer()));
+			const userPredictionModels = prediction.calculatePredictionModels(userActivities, userClusterModels);
+
+			predictionModels = predictionModels.concat(userPredictionModels);
 		});
 
+
+		// Clear all existing data and write newly calculated data.
 		await(Cluster.remove({}, defer()));
-		await(Cluster.insertMany(clusterArray, defer()));
+		await(Cluster.insertMany(clusters, defer()));
 
 		await(ClusterModel.remove({}, defer()));
-		await(ClusterModel.insertMany(clusterModelArray, defer()));
+		await(ClusterModel.insertMany(clusterModels, defer()));
+
+		await(PredictionModel.remove({}, defer()));
+		await(PredictionModel.insertMany(predictionModels, defer()));
 
 		res.status(200).send();
 	}, (err) => {
@@ -239,34 +255,43 @@ router.post('/clusters', function(req, res, next) {
 	});
 });
 
+router.get('/activity/next', function(req, res, next) {
+	fiber(() => {
+		if (!req.query || !req.query.user) {
+			res.status(400).send('Missing user');
+			return;
+		}
 
-// TODO: Move predictionmodel making directly after clustering
-router.post('/predict', function(req, res, next) {
+		const user = req.query.user;
+		const lastActivity = await(Activity.findOne({user: user}).sort({start: -1}).exec(defer()));
+		if (!lastActivity) {
+			throw new Error('This user has no activities yet');
+		}
+		const clusterModel = await(ClusterModel.findOne({user: user, activity: lastActivity.activity}, defer()));
+		const predictionModel = await(PredictionModel.findOne({user: user, activity: lastActivity.activity}, defer()));
+		if(!clusterModel || !predictionModel) {
+			throw new Error('First calculate cluster');
+		}
+		const nextActivities = prediction.predict(lastActivity, clusterModel, predictionModel);
+
+		res.status(200).send(nextActivities);
+	}, (err) => {
+		if(err) {
+			log.e(err);
+			res.status(500).send('Failed to predict next activity: ' + err.message);
+		}
+	});
+});
+
+router.get('/moment', function(req, res, next) {
 	fiber(() => {
 		if (!req.body || !req.body.user) {
-			res.status(400).send();
+			res.status(400).send('Missing user');
 			return;
 		}
 
 		const user = req.body.user;
-
-		const activities = await(Activity.find({user: user}).sort({"time":1}).exec(defer()));
-		const clusterModels = await(ClusterModel.find({user: user}, defer()));
-
-		const predictionModels = prediction.calculatePredictionModels(activities, clusterModels);
-
-		await(PredictionModel.remove({user: user}, defer()));
-		await(PredictionModel.insertMany(Object.values(predictionModels), defer()));
-
-
-		// prediction
-
-		// const lastActivity = await(Activity.find({user: user}).sort({"time":-1}).limit(1).exec(defer()));
-		// const clusterModel = util.arrToObj(clusterModels.find(cm => cm.activity === lastActivity.activity), 'activity');
-		// const model = clusterModels.find(cm => cm.activity === lastActivity.activity);
-		//
-		// util.arrToObj(clusterModels);
-
+		const predictionModels = await(PredictionModel.find({user: user}, defer()));
 
 		res.status(200).send();
 	}, (err) => {

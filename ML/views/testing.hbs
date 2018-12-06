@@ -1,10 +1,12 @@
 <p>Work in progress</p>
 
-<form id="predict" class="fLeft" enctype="multipart/form-data">
+<div class="fLeft">
     User ID:<br>
-    <input type="text" name="user" placeholder="e.g. 123 or Remy" required>
+    <input id="user" type="text" name="user" placeholder="e.g. 123 or Remy" required />
     <br><br>
-    <input type="submit" value="Predict">   <img id="spinner" src="/images/spinner.gif" width="10px">
-</form>
+    <button id="predict">Predict</button>   <img id="predictSpinner" src="/images/spinner.gif" width="10px" />
+    <br>
+    <button id="moment">Find ideal moment</button>   <img id="momentSpinner" src="/images/spinner.gif" width="10px" />
+</div>
 
-<p id="predictStatus" class="error center"></p>
+<p id="status" class="error center"></p>
