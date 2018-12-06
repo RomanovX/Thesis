@@ -18,10 +18,10 @@ $(document).ready(function() {
 				$('#status').text("Your next activity is predicted to be:\n" + JSON.stringify(xhr))
 			},
 			error: function(xhr) {
-				$('#status').text("Error getting prediction. Error message: " + (xhr.responseText || xhr.statusText))
+				$('#status').text("Error getting prediction: " + (xhr.responseText || xhr.statusText))
 			},
 		});
-	})
+	});
 
 	$('#moment').submit(function(e) {
 		e.preventDefault();
@@ -39,7 +39,7 @@ $(document).ready(function() {
 				$('#status').text("Your ideal moment would be:\n" + JSON.stringify(xhr))
 			},
 			error: function(xhr) {
-				$('#status').text("Error getting moment. Error message: " + (xhr.responseText || xhr.statusText))
+				$('#status').text("Error getting moment: " + (xhr.responseText || xhr.statusText))
 			},
 		});
 	})

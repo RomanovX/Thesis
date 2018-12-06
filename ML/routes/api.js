@@ -90,6 +90,7 @@ router.post('/activities/bulk', function(req, res, next) {
 			return;
 		}
 
+		const user = req.fields.user;
 		let activities = [];
 
 		// Try xes file
@@ -102,7 +103,6 @@ router.post('/activities/bulk', function(req, res, next) {
 				let entries = json.log.trace.reduce((acts, trace) => {
 					return acts.concat(trace.event.map(entry => {
 						return {
-							user: req.fields.user,
 							activity: entry.string[0].value,
 							date: new Date(entry.date.value),
 							status: entry.string[1].value
@@ -126,6 +126,7 @@ router.post('/activities/bulk', function(req, res, next) {
 
 					if (entry.status === "start") {
 						startingEntries.push({
+							user: user,
 							activity: entry.activity,
 							start: entry.date
 						})
@@ -194,17 +195,16 @@ router.post('/clusters', function(req, res, next) {
 			return;
 		}
 
-		const activityNames = await(Activity.distinct('activity', defer()));
-		const users = await(Activity.distinct('user', defer()));
-
 		// Storage arrays for data spanning all users
 		const clusters = [];
 		const clusterModels = [];
 		let predictionModels = [];
 
+		const users = await(Activity.distinct('user', defer()));
 		users.forEach(user => {
 			log.i(`Calculating clusters for user: ${user}`);
 			const userClusterModels = [];
+			const activityNames = await(Activity.distinct('activity', {user: user}, defer()));
 			activityNames.forEach(activity => {
 				log.v(`Processing activity: ${activity}`);
 				const entries = await(Activity.find({user: user, activity: activity}, defer()));
@@ -255,6 +255,20 @@ router.post('/clusters', function(req, res, next) {
 	});
 });
 
+router.delete('/clusters', function(req, res, next) {
+	fiber(() => {
+		await(Cluster.remove({}, defer()));
+		await(ClusterModel.remove({}, defer()));
+		await(PredictionModel.remove({}, defer()));
+		res.status(200).send();
+	}, (err) => {
+		if(err) {
+			log.e(err);
+			res.status(500).send('Failed to clear activity database: ' + err.message);
+		}
+	});
+});
+
 router.get('/activity/next', function(req, res, next) {
 	fiber(() => {
 		if (!req.query || !req.query.user) {
@@ -273,6 +287,11 @@ router.get('/activity/next', function(req, res, next) {
 			throw new Error('First calculate cluster');
 		}
 		const nextActivities = prediction.predict(lastActivity, clusterModel, predictionModel);
+
+		if (!nextActivities) {
+			res.status(400).send('Not enough data to make a prediction');
+			return;
+		}
 
 		res.status(200).send(nextActivities);
 	}, (err) => {

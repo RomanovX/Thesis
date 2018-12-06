@@ -129,7 +129,7 @@ function calculatePredictionModels(activities, clusterModels) {
 			throw Error('Multiple cluster models for the same activity: ' + activity);
 		}
 
-		const nextClustersPrefab = Array.from({ length: model.numClusters }, () => new Object({count: 0}));
+		const nextClustersPrefab = Array.from({ length: model.numClusters }, () => new Object());
 
 		dataContainer[activity] = {
 			user: cmDescription.user,
@@ -203,6 +203,9 @@ function predict(lastActivity, clusterModel, predictionModel) {
 	const clusterIdx = model.predict([[rawStart]])[0];
 	const singleProb = 1 / predictionModel.counts[clusterIdx];
 	const nextClusters = predictionModel.nextClusters[clusterIdx];
+	if (!nextClusters) {
+		return null;
+	}
 	const max = Object.keys(nextClusters).filter(x => {
 		return nextClusters[x] === Math.max.apply(null,	Object.values(nextClusters));
 	});
