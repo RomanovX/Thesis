@@ -23,7 +23,7 @@ $(document).ready(function() {
 		});
 	});
 
-	$('#moment').submit(function(e) {
+	$('#moment').click(function(e) {
 		e.preventDefault();
 		const user = $('#user').val();
 		$.ajax({
@@ -35,7 +35,7 @@ $(document).ready(function() {
 			complete: function() {
 				momentSpinner.hide();
 			},
-			success: function() {
+			success: function(xhr) {
 				$('#status').text("Your ideal moment would be:\n" + JSON.stringify(xhr))
 			},
 			error: function(xhr) {

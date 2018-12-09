@@ -275,7 +275,6 @@ router.get('/activity/next', function(req, res, next) {
 			res.status(400).send('Missing user');
 			return;
 		}
-
 		const user = req.query.user;
 		const lastActivity = await(Activity.findOne({user: user}).sort({start: -1}).exec(defer()));
 		if (!lastActivity) {
@@ -304,13 +303,26 @@ router.get('/activity/next', function(req, res, next) {
 
 router.get('/moment', function(req, res, next) {
 	fiber(() => {
-		if (!req.body || !req.body.user) {
+		if (!req.query || !req.query.user) {
 			res.status(400).send('Missing user');
 			return;
 		}
+		const user = req.query.user;
 
-		const user = req.body.user;
+		const lastActivity = await(Activity.findOne({user: user}).sort({start: -1}).exec(defer()));
+		if (!lastActivity) {
+			throw new Error('This user has no activities yet');
+		}
+		const clusterModel = await(ClusterModel.findOne({user: user, activity: lastActivity.activity}, defer()));
 		const predictionModels = await(PredictionModel.find({user: user}, defer()));
+		const clusterCount = await(Cluster.countDocuments({user: user}, defer()));
+		if(!clusterModel || !predictionModels || !clusterCount) {
+			throw new Error('First calculate cluster');
+		}
+
+
+
+		const moment = prediction.findMoment(lastActivity, clusterModel, predictionModels, clusterCount);
 
 		res.status(200).send();
 	}, (err) => {

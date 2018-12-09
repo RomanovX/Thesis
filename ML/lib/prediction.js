@@ -1,6 +1,7 @@
 const em = require('ml-expectation-maximization').ExpectationMaximization;
 const array = {mean: require('ml-array-mean'), variance: require('ml-array-variance')};
-const matrix = require('ml-matrix');
+const { Matrix, EigenvalueDecomposition } = require('ml-matrix');
+const util = require('./util');
 
 /**
  * @typedef  {Object} activity
@@ -59,6 +60,18 @@ function sortDataPerCluster(dataArray, indices) {
 	return result;
 }
 
+/**
+ * @param activity		{activity}
+ * @param clusterModel	{clusterModel}
+ *
+ * @returns 			{Number}	Index of cluster the activity is predicted to be in
+ */
+function getClusterIdx(activity, clusterModel) {
+	const model = em.load(clusterModel.model);
+	const rawStart = getMinutesSinceMidnight(lastActivity);
+	const clusterIdx = model.predict([[rawStart]])[0];
+	return clusterIdx;
+}
 /**
  * @param activities	{Array.<activity>}		Array of activity objects
  */
@@ -129,7 +142,7 @@ function calculatePredictionModels(activities, clusterModels) {
 			throw Error('Multiple cluster models for the same activity: ' + activity);
 		}
 
-		const nextClustersPrefab = Array.from({ length: model.numClusters }, () => new Object());
+		const nextClustersPrefab = Array.from({ length: model.numClusters }, () => new Object({}));
 
 		dataContainer[activity] = {
 			user: cmDescription.user,
@@ -198,9 +211,7 @@ function calculatePredictionModels(activities, clusterModels) {
  * @returns 				{Array.<{activity: string, cluster: number, probability: number}>}	Name of the predicted activity and its cluster
  */
 function predict(lastActivity, clusterModel, predictionModel) {
-	const model = em.load(clusterModel.model);
-	const rawStart = getMinutesSinceMidnight(lastActivity);
-	const clusterIdx = model.predict([[rawStart]])[0];
+	const clusterIdx = getClusterIdx(lastActivity, clusterModel);
 	const singleProb = 1 / predictionModel.counts[clusterIdx];
 	const nextClusters = predictionModel.nextClusters[clusterIdx];
 	if (!nextClusters) {
@@ -218,12 +229,65 @@ function predict(lastActivity, clusterModel, predictionModel) {
 }
 
 /**
- * @param predictionModel	{predictionModel}	Prediction model corresponding to the activity
+ * @param lastActivity	 	{activity}					Last activity as recorded for the user
+ * @param clusterModel		{clusterModel}				Cluster model corresponding to the activity
+ * @param predictionModels	{Array.<predictionModel>}	All the user's prediction models
+ * @param clusterCount		{Number}					Number of unique clusters of the user
  *
- * @returns 				{Array.<{activity: string, cluster: number, probability: number}>}	Name of the predicted activity and its cluster
+ * @returns 				{{activity: string, cluster: number, value: number, stepsFromStart: number, stepsFromEnd: number}}	Name of the predicted activity and its cluster
  */
-function findMoment(predictionModels) {
+function findMoment(lastActivity, clusterModel, predictionModels, clusterCount) {
+	//const clusterModelDict = util.arrToObj(clusterModels, 'activity');
+	const predictionModelDict = util.arrToObj(predictionModels, 'activity');
 
+	let nextIdx = 0;
+	const clusterIdxDict = {};
+	const transitionMatrix = Matrix.zeros(clusterCount, clusterCount);
+
+	function getIndex(key) {
+		if (!(key in clusterIdxDict)) {
+			clusterIdxDict[key] = nextIdx++;
+		}
+		return clusterIdxDict[key];
+	}
+
+	predictionModels.forEach(model => {
+		model.nextClusters.forEach((cluster, index) => {
+			const singleProb = 1 / model.counts[index];
+			const fromKey = model.activity + '_' + index;
+			const fromIdx = getIndex(fromKey);
+			Object.keys(cluster).forEach(toKey => {
+				const toIdx = getIndex(toKey);
+				transitionMatrix.set(fromIdx, toIdx, cluster[toKey]*singleProb)
+			})
+		})
+	});
+
+	// const start = getClusterIdx(lastActivity, clusterModel);
+	// const startKey = lastActivity.activity + '_' + start;
+	// const startIdx = getIndex(startKey);
+
+	let stepMatrix = transitionMatrix;
+	let steps = 1;
+
+	while(true) {
+		const t2d = stepMatrix.to2DArray();
+		const sums = t2d.map(row => row.reduce((a, b) => a + b, 0));
+		stepMatrix = stepMatrix.mmul(stepMatrix);
+		if (util.assert2dArray(t2d, stepMatrix.to2DArray())) {
+			console.log(`Found stationary matrix after ${steps} steps`);
+			break;
+		}
+		console.log(steps++);
+	}
+
+
+
+	const evd = new EigenvalueDecomposition(transitionMatrix.transpose());
+	const eigenvectors = evd.eigenvectorMatrix;
+	const stationary = eigenvectors.to2DArray().filter(row => row.every(value => value >= 0));
+
+	console.log(transitionMatrix);
 }
 
 module.exports = {
