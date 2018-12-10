@@ -301,7 +301,7 @@ router.get('/activity/next', function(req, res, next) {
 	});
 });
 
-router.get('/moment', function(req, res, next) {
+router.get('/transition', function(req, res, next) {
 	fiber(() => {
 		if (!req.query || !req.query.user) {
 			res.status(400).send('Missing user');
@@ -313,6 +313,7 @@ router.get('/moment', function(req, res, next) {
 		if (!lastActivity) {
 			throw new Error('This user has no activities yet');
 		}
+
 		const clusterModel = await(ClusterModel.findOne({user: user, activity: lastActivity.activity}, defer()));
 		const predictionModels = await(PredictionModel.find({user: user}, defer()));
 		const clusterCount = await(Cluster.countDocuments({user: user}, defer()));
@@ -320,7 +321,42 @@ router.get('/moment', function(req, res, next) {
 			throw new Error('First calculate cluster');
 		}
 
+		const transitionMatrix = prediction.findTransition(lastActivity, clusterModel, predictionModels, clusterCount);
 
+		res.status(200).send(transitionMatrix);
+	}, (err) => {
+		if(err) {
+			log.e(err);
+			res.status(500).send('Failed to predict next activity: ' + err.message);
+		}
+	});
+});
+
+router.get('/moment', function(req, res, next) {
+	fiber(() => {
+		if (!req.query || !req.query.user || !req.query.activity) {
+			res.status(400).send('Missing user or final activity');
+			return;
+		}
+		const user = req.query.user;
+		const finalActivity = req.query.activity;
+
+		const lastActivity = await(Activity.findOne({user: user}).sort({start: -1}).exec(defer()));
+		if (!lastActivity) {
+			throw new Error('This user has no activities yet');
+		}
+
+		if (finalActivity === lastActivity.activity) {
+			res.status(200).send('now');
+			return;
+		}
+
+		const clusterModel = await(ClusterModel.findOne({user: user, activity: lastActivity.activity}, defer()));
+		const predictionModels = await(PredictionModel.find({user: user}, defer()));
+		const clusterCount = await(Cluster.countDocuments({user: user}, defer()));
+		if(!clusterModel || !predictionModels || !clusterCount) {
+			throw new Error('First calculate cluster');
+		}
 
 		const moment = prediction.findMoment(lastActivity, clusterModel, predictionModels, clusterCount);
 

@@ -72,6 +72,27 @@ function getClusterIdx(activity, clusterModel) {
 	const clusterIdx = model.predict([[rawStart]])[0];
 	return clusterIdx;
 }
+
+/**
+ * @param transitionMatrix		{Matrix}
+ *
+ * @returns 		{Matrix}	Stationary matrix with accuracy of 10^12
+ */
+function getStationaryMatrix(transitionMatrix) {
+	let stepMatrix = transitionMatrix;
+	let steps = 1;
+	while(true) {
+		const t2d = stepMatrix.to2DArray();
+		const sums = t2d.map(row => row.reduce((a, b) => a + b, 0));
+		stepMatrix = stepMatrix.mmul(stepMatrix);
+		if (util.assert2dArray(t2d, stepMatrix.to2DArray())) {
+			console.log(`Found stationary matrix after ${steps} steps`);
+			break;
+		}
+	}
+	return stepMatrix;
+}
+
 /**
  * @param activities	{Array.<activity>}		Array of activity objects
  */
@@ -233,6 +254,43 @@ function predict(lastActivity, clusterModel, predictionModel) {
  * @param clusterModel		{clusterModel}				Cluster model corresponding to the activity
  * @param predictionModels	{Array.<predictionModel>}	All the user's prediction models
  * @param clusterCount		{Number}					Number of unique clusters of the user
+ * @param finalActivity		{String}
+ *
+ * @returns 				{Matrix}					Transition matrix
+ */
+function findTransition(lastActivity, clusterModel, predictionModels, clusterCount) {
+	let nextIdx = 0;
+	const clusterIdxDict = {};
+	const transitionMatrix = Matrix.zeros(clusterCount, clusterCount);
+
+	function getIndex(key) {
+		if (!(key in clusterIdxDict)) {
+			clusterIdxDict[key] = nextIdx++;
+		}
+		return clusterIdxDict[key];
+	}
+
+	predictionModels.forEach(model => {
+		model.nextClusters.forEach((cluster, index) => {
+			const singleProb = 1 / model.counts[index];
+			const fromKey = model.activity + '_' + index;
+			const fromIdx = getIndex(fromKey);
+			Object.keys(cluster).forEach(toKey => {
+				const toIdx = getIndex(toKey);
+				transitionMatrix.set(fromIdx, toIdx, cluster[toKey]*singleProb)
+			})
+		})
+	});
+
+	return transitionMatrix;
+}
+
+/**
+ * @param lastActivity	 	{activity}					Last activity as recorded for the user
+ * @param clusterModel		{clusterModel}				Cluster model corresponding to the activity
+ * @param predictionModels	{Array.<predictionModel>}	All the user's prediction models
+ * @param clusterCount		{Number}					Number of unique clusters of the user
+ * @param finalActivity		{String}
  *
  * @returns 				{{activity: string, cluster: number, value: number, stepsFromStart: number, stepsFromEnd: number}}	Name of the predicted activity and its cluster
  */
@@ -267,25 +325,13 @@ function findMoment(lastActivity, clusterModel, predictionModels, clusterCount) 
 	// const startKey = lastActivity.activity + '_' + start;
 	// const startIdx = getIndex(startKey);
 
-	let stepMatrix = transitionMatrix;
-	let steps = 1;
 
-	while(true) {
-		const t2d = stepMatrix.to2DArray();
-		const sums = t2d.map(row => row.reduce((a, b) => a + b, 0));
-		stepMatrix = stepMatrix.mmul(stepMatrix);
-		if (util.assert2dArray(t2d, stepMatrix.to2DArray())) {
-			console.log(`Found stationary matrix after ${steps} steps`);
-			break;
-		}
-		console.log(steps++);
-	}
+	// Find the unique eigenvectors
+	const uniqueRows = stepMatrix.map(row => JSON.stringify(row)).filter((value, index, self) => self.indexOf(value) === index).map(stringRow => JSON.parse(stringRow));
 
-
-
-	const evd = new EigenvalueDecomposition(transitionMatrix.transpose());
-	const eigenvectors = evd.eigenvectorMatrix;
-	const stationary = eigenvectors.to2DArray().filter(row => row.every(value => value >= 0));
+	// const evd = new EigenvalueDecomposition(transitionMatrix.transpose());
+	// const eigenvectors = evd.eigenvectorMatrix;
+	// const stationary = eigenvectors.to2DArray().filter(row => row.every(value => value >= 0));
 
 	console.log(transitionMatrix);
 }
@@ -295,4 +341,5 @@ module.exports = {
 	calculatePredictionModels: calculatePredictionModels,
 	predict: predict,
 	findMoment: findMoment,
+	findTransition: findTransition,
 };

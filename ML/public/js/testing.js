@@ -1,6 +1,7 @@
 $(document).ready(function() {
 	const predictSpinner = $('#predictSpinner').hide();
 	const momentSpinner = $('#momentSpinner').hide();
+	const transitionSpinner = $('#transitionSpinner').hide();
 
 	$('#predict').click(function(e) {
 		e.preventDefault();
@@ -23,12 +24,34 @@ $(document).ready(function() {
 		});
 	});
 
-	$('#moment').click(function(e) {
+	$('#transition').click(function(e) {
 		e.preventDefault();
 		const user = $('#user').val();
 		$.ajax({
 			type: 'get',
-			url: `api/v1/moment?user=${user}`,
+			url: `api/v1/transition?user=${user}`,
+			beforeSend: function() {
+				transitionSpinner.show();
+			},
+			complete: function() {
+				transitionSpinner.hide();
+			},
+			success: function(xhr) {
+				$('#status').text("Your transitionMatrix is:\n" + JSON.stringify(xhr))
+			},
+			error: function(xhr) {
+				$('#status').text("Error getting moment: " + (xhr.responseText || xhr.statusText))
+			},
+		});
+	});
+
+	$('#moment').click(function(e) {
+		e.preventDefault();
+		const user = $('#user').val();
+		const activity = $('#activity').val();
+		$.ajax({
+			type: 'get',
+			url: `api/v1/moment?user=${user}&activity=${activity}`,
 			beforeSend: function() {
 				momentSpinner.show();
 			},
@@ -42,5 +65,5 @@ $(document).ready(function() {
 				$('#status').text("Error getting moment: " + (xhr.responseText || xhr.statusText))
 			},
 		});
-	})
+	});
 });
