@@ -341,9 +341,16 @@ router.get('/moment', function(req, res, next) {
 		const user = req.query.user;
 		const finalActivity = req.query.activity;
 
+		const finalModel = await(ClusterModel.findOne({user: user, activity: finalActivity}, defer()));
+		if (!finalModel) {
+			res.status(400).send('This activity has not yet been performed by the user.');
+			return;
+		}
+
 		const lastActivity = await(Activity.findOne({user: user}).sort({start: -1}).exec(defer()));
 		if (!lastActivity) {
-			throw new Error('This user has no activities yet');
+			res.status(400).send('This user has no activities yet');
+			return;
 		}
 
 		if (finalActivity === lastActivity.activity) {
@@ -355,10 +362,16 @@ router.get('/moment', function(req, res, next) {
 		const predictionModels = await(PredictionModel.find({user: user}, defer()));
 		const clusterCount = await(Cluster.countDocuments({user: user}, defer()));
 		if(!clusterModel || !predictionModels || !clusterCount) {
-			throw new Error('First calculate cluster');
+			res.status(400).send('First calculate clusters for this user');
+			return;
 		}
 
-		const moment = prediction.findMoment(lastActivity, clusterModel, predictionModels, clusterCount);
+		const moment = prediction.findMoment(lastActivity, clusterModel, predictionModels, clusterCount, finalModel);
+
+		/*
+		 * TODO: values (and importance of each value) so strongly value health = *0.8, dont value = *0, somewhat value = *2, etc
+		 * Or don't do this at all and just stick to an arbitrary value "annoyance" that compares directly with the value gain
+		 */
 
 		res.status(200).send();
 	}, (err) => {

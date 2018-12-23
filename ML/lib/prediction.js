@@ -1,6 +1,6 @@
 const em = require('ml-expectation-maximization').ExpectationMaximization;
 const array = {mean: require('ml-array-mean'), variance: require('ml-array-variance')};
-const { Matrix, EigenvalueDecomposition } = require('ml-matrix');
+const { Matrix, inverse } = require('ml-matrix');
 const util = require('./util');
 
 /**
@@ -14,9 +14,13 @@ const util = require('./util');
 
 /**
  * @typedef  {Object} clusterModel
- * @property {string} activity 	Name of the activity.
- * @property {string} user	 	UserID
- * @property {Object} model 	Parameters describing cluster. Loadable through em.load(model)
+ * @property {string} activity 			Name of the activity.
+ * @property {string} user	 			UserID
+ * @property {Object} model 			Parameters describing cluster. Loadable through em.load(model)
+ * @property {String} model.model		Constant string identifying em model
+ * @property {Array}  model.clusters	Array of objects containing the actual cluster parameters
+ * @property {Number} model.epsilon		Parameter epsilon used when calculating the clusters
+ * @property {String} model.numClusters	Number of clusters in model
  */
 
 /**
@@ -68,7 +72,7 @@ function sortDataPerCluster(dataArray, indices) {
  */
 function getClusterIdx(activity, clusterModel) {
 	const model = em.load(clusterModel.model);
-	const rawStart = getMinutesSinceMidnight(lastActivity);
+	const rawStart = getMinutesSinceMidnight(activity);
 	const clusterIdx = model.predict([[rawStart]])[0];
 	return clusterIdx;
 }
@@ -254,7 +258,6 @@ function predict(lastActivity, clusterModel, predictionModel) {
  * @param clusterModel		{clusterModel}				Cluster model corresponding to the activity
  * @param predictionModels	{Array.<predictionModel>}	All the user's prediction models
  * @param clusterCount		{Number}					Number of unique clusters of the user
- * @param finalActivity		{String}
  *
  * @returns 				{Matrix}					Transition matrix
  */
@@ -286,54 +289,91 @@ function findTransition(lastActivity, clusterModel, predictionModels, clusterCou
 }
 
 /**
- * @param lastActivity	 	{activity}					Last activity as recorded for the user
- * @param clusterModel		{clusterModel}				Cluster model corresponding to the activity
- * @param predictionModels	{Array.<predictionModel>}	All the user's prediction models
- * @param clusterCount		{Number}					Number of unique clusters of the user
- * @param finalActivity		{String}
+ * @param lastActivity	 	{activity}							Last activity as recorded for the user
+ * @param clusterModel		{clusterModel}						Cluster model corresponding to the activity
+ * @param predictionModels	{Array.<predictionModel>}			All the user's prediction models
+ * @param clusterCount		{Number}							Number of unique clusters of the user
+ * @param finalModel		{clusterModel}						Cluster model corresponding to the final activity
+ * @param values			{Array.<Object.<string, number>>}	Dictionary of activities and their corresponding values
  *
  * @returns 				{{activity: string, cluster: number, value: number, stepsFromStart: number, stepsFromEnd: number}}	Name of the predicted activity and its cluster
  */
-function findMoment(lastActivity, clusterModel, predictionModels, clusterCount) {
-	//const clusterModelDict = util.arrToObj(clusterModels, 'activity');
-	const predictionModelDict = util.arrToObj(predictionModels, 'activity');
+function findMoment(lastActivity, clusterModel, predictionModels, clusterCount, finalModel, values) {
+	const finalActivity = finalModel.activity;
 
-	let nextIdx = 0;
+	// Note: Since it doesn't matter which cluster of the final activity is reached, these clusters are merged
+	const mergedClusterCount = clusterCount - finalModel.model.numClusters + 1;
+	const transitionMatrix = Matrix.zeros(mergedClusterCount, mergedClusterCount);
+
+	// Keep a dictionary of cluster vs matrix index
 	const clusterIdxDict = {};
-	const transitionMatrix = Matrix.zeros(clusterCount, clusterCount);
-
+	let nextIdx = 0;
 	function getIndex(key) {
 		if (!(key in clusterIdxDict)) {
-			clusterIdxDict[key] = nextIdx++;
+			// Prepare for canonical form and put the final activity (which will be made absorbing) in the last row
+			if (key === finalActivity) {
+				clusterIdxDict[key] = mergedClusterCount - 1;
+			} else {
+				clusterIdxDict[key] = nextIdx++;
+			}
 		}
 		return clusterIdxDict[key];
+	}
+
+	function overrideFinalCluster(key) {
+		if (key.split("_")[0] === finalActivity) {
+			return finalActivity;
+		}
+		return key;
+	}
+
+	function makeAbsorbing(idx) {
+		const row = Array(mergedClusterCount).fill(0);
+		row[idx] = 1;
+		transitionMatrix.setRow(idx, row);
 	}
 
 	predictionModels.forEach(model => {
 		model.nextClusters.forEach((cluster, index) => {
 			const singleProb = 1 / model.counts[index];
 			const fromKey = model.activity + '_' + index;
-			const fromIdx = getIndex(fromKey);
+			const fromIdx = getIndex(overrideFinalCluster(fromKey));
 			Object.keys(cluster).forEach(toKey => {
-				const toIdx = getIndex(toKey);
-				transitionMatrix.set(fromIdx, toIdx, cluster[toKey]*singleProb)
+				const toIdx = getIndex(overrideFinalCluster(toKey));
+				let value = transitionMatrix.get(fromIdx, toIdx);
+				transitionMatrix.set(fromIdx, toIdx, value + cluster[toKey]*singleProb);
 			})
 		})
 	});
 
-	// const start = getClusterIdx(lastActivity, clusterModel);
-	// const startKey = lastActivity.activity + '_' + start;
-	// const startIdx = getIndex(startKey);
+	// Make the final activity absorbing
+	makeAbsorbing(getIndex(finalActivity));
 
+	/* Get canonical components
+	 *
+	 * This assumes the matrix is now in the form P = [[Q R], [0, I]]
+	 * Since there is only one absorbing state, the identity matrix is of size 1-by-1
+	 */
+	const Q = transitionMatrix.subMatrix(0, mergedClusterCount - 2, 0, mergedClusterCount - 2);
+	const R = transitionMatrix.subMatrix(0, mergedClusterCount - 2, mergedClusterCount - 1, mergedClusterCount - 1);
 
-	// Find the unique eigenvectors
-	const uniqueRows = stepMatrix.map(row => JSON.stringify(row)).filter((value, index, self) => self.indexOf(value) === index).map(stringRow => JSON.parse(stringRow));
+	// Finding the fundamental matrix N = (I - Q)^(-1), where I is of the same dimension as Q
+	const I = Matrix.eye(mergedClusterCount - 1, mergedClusterCount - 1);
+	const N = inverse(I.sub(Q));
 
-	// const evd = new EigenvalueDecomposition(transitionMatrix.transpose());
-	// const eigenvectors = evd.eigenvectorMatrix;
-	// const stationary = eigenvectors.to2DArray().filter(row => row.every(value => value >= 0));
+	// Transient probabilities H = (N - I)*Ndg, where I is of the same dimension as N and for Ndg, see below
+	const Ndg = Matrix.diag(N.diag()); // Diagonal matrix containing the diagonals of N
+	const H = N.sub(I).mmul(inverse(Ndg));
 
-	console.log(transitionMatrix);
+	// Get index of starting cluster
+	const start = getClusterIdx(lastActivity, clusterModel);
+	const startKey = lastActivity.activity + '_' + start;
+	const startIdx = getIndex(startKey);
+
+	// Take corresponding transient probability row H_start
+	const H_start = H.getRowVector(startIdx);
+
+	const h = 0;
 }
 
 module.exports = {
