@@ -335,7 +335,11 @@ function findMoment(lastActivity, clusterModel, predictionModels, clusterCount, 
 
 	predictionModels.forEach(model => {
 		model.nextClusters.forEach((cluster, index) => {
-			const singleProb = 1 / model.counts[index];
+			let singleProb = 1 / model.counts[index];
+			// Scale probabilities for the final activity
+			if (model.activity === finalActivity) {
+				singleProb /= finalModel.model.numClusters;
+			}
 			const fromKey = model.activity + '_' + index;
 			const fromIdx = getIndex(overrideFinalCluster(fromKey));
 			Object.keys(cluster).forEach(toKey => {
@@ -345,6 +349,12 @@ function findMoment(lastActivity, clusterModel, predictionModels, clusterCount, 
 			})
 		})
 	});
+
+	// Check if transition matrix still all sums to near 1
+	const test = transitionMatrix.sum("row").to1DArray();
+	if (!test.every(sum => Math.round(sum*10000000) / 10000000 === 1)) {
+		throw Error("Incorrect transition matrix. Not all row probabilities add up to 1")
+	}
 
 	// Make the final activity absorbing
 	makeAbsorbing(getIndex(finalActivity));
@@ -372,6 +382,9 @@ function findMoment(lastActivity, clusterModel, predictionModels, clusterCount, 
 
 	// Take corresponding transient probability row H_start
 	const H_start = H.getRowVector(startIdx);
+
+	// Expected number of steps until absorption t
+	const t = N.mmul(Matrix.ones(mergedClusterCount - 1, 1)).to1DArray();
 
 	const h = 0;
 }
