@@ -5,6 +5,7 @@ $(document).ready(function() {
 
 	$('#predict').click(function(e) {
 		e.preventDefault();
+		$('#status').text("");
 		const user = $('#user').val();
 		$.ajax({
 			type: 'get',
@@ -26,6 +27,7 @@ $(document).ready(function() {
 
 	$('#transition').click(function(e) {
 		e.preventDefault();
+		$('#status').text("");
 		const user = $('#user').val();
 		$.ajax({
 			type: 'get',
@@ -47,6 +49,7 @@ $(document).ready(function() {
 
 	$('#moment').click(function(e) {
 		e.preventDefault();
+		$('#status').text("");
 		const user = $('#user').val();
 		const activity = $('#activity').val();
 		$.ajax({

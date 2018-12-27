@@ -8,6 +8,7 @@ const log = require('../lib/log');
 const prediction = require('../lib/prediction');
 const Activity = require('../models/activity');
 const Cluster = require('../models/cluster');
+const User = require('../models/user');
 const ClusterModel = require('../models/clusterModel');
 const PredictionModel = require('../models/predictionModel');
 
@@ -172,6 +173,72 @@ router.delete('/activities', function(req, res, next) {
 		if(err) {
 			log.e(err);
 			res.status(500).send('Failed to clear activity database: ' + err.message);
+		}
+	});
+});
+
+router.get('/users/:id', function(req, res, next) {
+	fiber(() => {
+		// Return the details of the specific user (by id)
+		const user = await(User.findOne({id: req.params.id}, defer()));
+		res.status(200).send(user);
+	}, (err) => {
+		if(err) {
+			log.e(err);
+			res.status(500).send('Failed to get user: ' + err.message);
+		}
+	});
+});
+
+router.get('/users', function(req, res, next) {
+	fiber(() => {
+		const users = await(User.find({}, defer()));
+		res.status(200).send(users);
+	}, (err) => {
+		if(err) {
+			log.e(err);
+			res.status(500).send('Failed to get users: ' + err.message);
+		}
+	});
+});
+
+router.post('/users/:id', function(req, res, next) {
+	fiber(() => {
+		// Return the details of the specific user (by id)
+		const user = await(User.findOne({id: req.params.id}, defer()));
+		res.status(200).send(user);
+	}, (err) => {
+		if(err) {
+			log.e(err);
+			res.status(500).send('Failed to save user: ' + err.message);
+		}
+	});
+});
+
+router.delete('/users', function(req, res, next) {
+	fiber(() => {
+		await(User.remove({}, defer()));
+		res.status(200).send();
+	}, (err) => {
+		if(err) {
+			log.e(err);
+			res.status(500).send('Failed to clear user database: ' + err.message);
+		}
+	});
+});
+
+router.get('/clustermodels', function(req, res, next) {
+	fiber(() => {
+		const query = {};
+		if (req.query && req.query.user) {
+			query.user = req.query.user;
+		}
+		const clusterModels = await(ClusterModel.find(query, defer()));
+		res.status(200).send(clusterModels);
+	}, (err) => {
+		if(err) {
+			log.e(err);
+			res.status(500).send('Failed to get cluster models: ' + err.message);
 		}
 	});
 });

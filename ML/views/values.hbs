@@ -1,0 +1,23 @@
+<div class="fLeft">
+    User ID:<br>
+    <input id="user" type="text" name="user" placeholder="e.g. 123 or Remy" required />
+    <br><br>
+    <button id="load">Load</button>
+    <button id="save">Save</button>
+</div>
+
+<form id="userValuesForm" class="fRight" enctype="multipart/form-data">
+    <!--TODO: How to duplicate?-->
+    <div class="question">
+        <label for="activity">Activity:</label>
+        <input type="radio" name="value" value="0">Unacceptable</input>
+        <input type="radio" name="value" value="1" >Very annoyed</input>
+        <input type="radio" name="value" value="2" >Somewhat annoyed</input>
+        <input type="radio" name="value" value="3" >Only slightly annoyed</input>
+        <input type="radio" name="value" value="4" >Not at all annoyed</input>
+    </div>
+
+</form>
+
+<p id="status1" class="error center"></p>
+<p id="status2" class="error center"></p>

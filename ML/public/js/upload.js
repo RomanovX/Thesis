@@ -11,6 +11,7 @@ $(document).ready(function() {
 
 	$('#uploadForm').submit(function(e) {
 		e.preventDefault();
+		$('#uploadStatus').text("");
 		$.ajax({
 			type: 'POST',
 			url: 'api/v1/activities',
@@ -26,6 +27,7 @@ $(document).ready(function() {
 
 	$('#uploadFile').submit(function(e) {
 		e.preventDefault();
+		$('#uploadStatus').text("");
 		$.ajax({
 			type: 'POST',
 			url: 'api/v1/activities/bulk',

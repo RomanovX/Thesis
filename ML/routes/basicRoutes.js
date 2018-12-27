@@ -22,6 +22,10 @@ router.get('/upload', function(req, res, next) {
 	res.render('upload', { page: 'Upload', scripts: [{script: '/js/upload.js'}]});
 });
 
+router.get('/values', function(req, res, next) {
+	res.render('values', { page: 'Values', scripts: [{script: '/js/values.js'}]});
+});
+
 router.get('/docs', function(req, res, next) {
 	res.render('docs', { page: 'Documentation'});
 });
