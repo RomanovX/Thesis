@@ -204,9 +204,21 @@ router.get('/users', function(req, res, next) {
 
 router.post('/users/:id', function(req, res, next) {
 	fiber(() => {
-		// Return the details of the specific user (by id)
-		const user = await(User.findOne({id: req.params.id}, defer()));
-		res.status(200).send(user);
+		if (!req.body || (Object.keys(req.body).length === 0)) {
+			res.status(400).send('Body expected.');
+			return;
+		}
+
+		let user = await(User.findOne({id: req.params.id}, defer()));
+		if (!user) {
+			user = new User({
+				id: req.params.id,
+			});
+		}
+		user.values = req.body;
+
+		await(user.save(defer()));
+		res.status(200);
 	}, (err) => {
 		if(err) {
 			log.e(err);
@@ -405,16 +417,16 @@ router.get('/moment', function(req, res, next) {
 			res.status(400).send('Missing user or final activity');
 			return;
 		}
-		const user = req.query.user;
+		const userId = req.query.user;
 		const finalActivity = req.query.activity;
 
-		const finalModel = await(ClusterModel.findOne({user: user, activity: finalActivity}, defer()));
+		const finalModel = await(ClusterModel.findOne({user: userId, activity: finalActivity}, defer()));
 		if (!finalModel) {
 			res.status(400).send('This activity has not yet been performed by the user.');
 			return;
 		}
 
-		const lastActivity = await(Activity.findOne({user: user}).sort({start: -1}).exec(defer()));
+		const lastActivity = await(Activity.findOne({user: userId}).sort({start: -1}).exec(defer()));
 		if (!lastActivity) {
 			res.status(400).send('This user has no activities yet');
 			return;
@@ -425,22 +437,24 @@ router.get('/moment', function(req, res, next) {
 			return;
 		}
 
-		const clusterModel = await(ClusterModel.findOne({user: user, activity: lastActivity.activity}, defer()));
-		const predictionModels = await(PredictionModel.find({user: user}, defer()));
-		const clusterCount = await(Cluster.countDocuments({user: user}, defer()));
-		if(!clusterModel || !predictionModels || !clusterCount) {
+		const clusterModels = await(ClusterModel.find({user: userId}, defer()));
+		const predictionModels = await(PredictionModel.find({user: userId}, defer()));
+		const clusterCount = await(Cluster.countDocuments({user: userId}, defer()));
+		if(!clusterModels || !predictionModels || !clusterCount) {
 			res.status(400).send('First calculate clusters for this user');
 			return;
 		}
 
-		const moment = prediction.findMoment(lastActivity, clusterModel, predictionModels, clusterCount, finalModel);
+		const user = await(User.findOne({id: userId}, defer()));
+		const values = (user) ? user.values : {};
+		predictionModels.forEach(model => {
+			if (values[model.activity] === undefined) {
+				values[model.activity] = 3;
+			}
+		});
 
-		/*
-		 * TODO: values (and importance of each value) so strongly value health = *0.8, dont value = *0, somewhat value = *2, etc
-		 * Or don't do this at all and just stick to an arbitrary value "annoyance" that compares directly with the value gain
-		 */
-
-		res.status(200).send();
+		const moment = prediction.findMoment(lastActivity, clusterModels, predictionModels, clusterCount, finalModel, values);
+		res.status(200).send(moment);
 	}, (err) => {
 		if(err) {
 			log.e(err);

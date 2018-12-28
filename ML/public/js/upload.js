@@ -32,9 +32,6 @@ $(document).ready(function() {
 			type: 'POST',
 			url: 'api/v1/activities/bulk',
 			data: new FormData(this),
-			cache: false,
-			contentType: false,
-			processData: false,
 			success: function() {
 				$('#uploadStatus').text("Your activity file was successfully uploaded!")
 			},

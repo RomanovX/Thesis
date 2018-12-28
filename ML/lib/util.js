@@ -6,7 +6,7 @@
  */
 
 module.exports.arrToObj = function(arr, key) {
-	arr.reduce(function(map, obj) {
+	return arr.reduce(function(map, obj) {
 		map[obj[key]] = obj;
 		return map;
 	}, {});

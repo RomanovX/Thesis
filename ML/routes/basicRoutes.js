@@ -23,7 +23,7 @@ router.get('/upload', function(req, res, next) {
 });
 
 router.get('/values', function(req, res, next) {
-	res.render('values', { page: 'Values', scripts: [{script: '/js/values.js'}]});
+	res.render('values', { page: 'Values', scripts: [{script: '/js/values.js'}], stylesheets: [{stylesheet: '/stylesheets/values.css'}]});
 });
 
 router.get('/docs', function(req, res, next) {

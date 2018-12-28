@@ -1,11 +1,27 @@
 //TODO: clear forms when done uploading
+function getTableRowHtmlString(activity, checkedId) {
+	const c0 = (checkedId == 0) ? "checked" : "";
+	const c1 = (checkedId == 1) ? "checked" : "";
+	const c2 = (checkedId == 2) ? "checked" : "";
+	const c3 = (checkedId == 3) ? "checked" : "";
+	const c4 = (checkedId == 4) ? "checked" : "";
+	return `<tr class="question">
+            <td class="tg-dvpl"><label class="value_act" for="activity">${activity}</label></td>
+            <td class="tg-baqh"><input class="opt" type="radio" name="${activity}" value="0" ${c0}/></td>
+            <td class="tg-baqh"><input class="opt" type="radio" name="${activity}" value="1" ${c1}/></td>
+            <td class="tg-baqh"><input class="opt" type="radio" name="${activity}" value="2" ${c2}/></td>
+            <td class="tg-baqh"><input class="opt" type="radio" name="${activity}" value="3" ${c3}/></td>
+            <td class="tg-baqh"><input class="opt" type="radio" name="${activity}" value="4" ${c4}/></td>
+        </tr>`
+}
 
 $(document).ready(function() {
 	const st1 = $('#status1');
 	const st2 = $('#status2');
 
-	$('#load').click(function(e) {
-		e.preventDefault();
+	const table = $('#valueTable');
+
+	$('#load').click(function() {
 		st1.text("");
 		st2.text("");
 		const user = $('#user').val();
@@ -23,7 +39,15 @@ $(document).ready(function() {
 				}
 			});
 
-			//TODO: Populate form
+			const questions = Array.from(document.getElementsByClassName('question'));
+			questions.forEach(question => {
+				question.parentElement.removeChild(question);
+			});
+
+			Object.keys(values).forEach(activity => {
+				const html = getTableRowHtmlString(activity, values[activity]);
+				table.append(html);
+			})
 		}
 
 		$.ajax({
@@ -47,7 +71,7 @@ $(document).ready(function() {
 			type: 'get',
 			url: `api/v1/clustermodels?user=${user}`,
 			success: function(xhr) {
-				if (!xhr) {
+				if (!xhr || xhr.length === 0) {
 					st2.text("This user has no recorded activities");
 					return;
 				}
@@ -62,20 +86,20 @@ $(document).ready(function() {
 		});
 	});
 
-	$('#uploadFile').submit(function(e) {
-		e.preventDefault();
+	$('#save').click(function(e) {
+		const data = $('#userValuesForm').serialize();
+		const user = $('#user').val();
+		st1.text("");
+		st2.text("");
 		$.ajax({
 			type: 'POST',
-			url: 'api/v1/activities/bulk',
-			data: new FormData(this),
-			cache: false,
-			contentType: false,
-			processData: false,
+			url: `api/v1/users/${user}`,
+			data: data,
 			success: function() {
-				$('#status1').text("Your activity file was successfully uploaded!")
+				st1.text("User values successfully saved!")
 			},
 			error: function(xhr, status, error) {
-				$('#status1').text("Error! Your activity file was not uploaded. Error message: " + (xhr.responseText || xhr.statusText))
+				st1.text("Error! Your user values were not saved. Error message: " + (xhr.responseText || xhr.statusText))
 			},
 		});
 	});

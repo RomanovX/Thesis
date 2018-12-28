@@ -8,15 +8,16 @@
 
 <form id="userValuesForm" class="fRight" enctype="multipart/form-data">
     <!--TODO: How to duplicate?-->
-    <div class="question">
-        <label for="activity">Activity:</label>
-        <input type="radio" name="value" value="0">Unacceptable</input>
-        <input type="radio" name="value" value="1" >Very annoyed</input>
-        <input type="radio" name="value" value="2" >Somewhat annoyed</input>
-        <input type="radio" name="value" value="3" >Only slightly annoyed</input>
-        <input type="radio" name="value" value="4" >Not at all annoyed</input>
-    </div>
-
+    <div class="tg-wrap"><table id="valueTable" class="tg">
+        <tr id="header">
+            <td class="tg-6ic8">Activity</td>
+            <td class="tg-amwm">Unacceptable</td>
+            <td class="tg-amwm">Very annoying</td>
+            <td class="tg-amwm">Annoying </td>
+            <td class="tg-amwm">Somewhat annoying</td>
+            <td class="tg-amwm">Not at all annoying</td>
+        </tr>
+    </table></div>
 </form>
 
 <p id="status1" class="error center"></p>

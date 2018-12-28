@@ -45,6 +45,19 @@ function getMinutesSinceMidnight(activity) {
 }
 
 /**
+ * @param mins	{Number} 	Minutes since midnight
+ *
+ * @returns 	{String}	Starting time string HH:MM
+ */
+function convertMinsToHrsMins(mins) {
+	let h = Math.floor(mins / 60);
+	let m = Math.floor(mins % 60);
+	h = h < 10 ? '0' + h : h;
+	m = m < 10 ? '0' + m : m;
+	return `${h}:${m}`;
+}
+
+/**
  * @param dataArray		{Array} 					Array containing data
  * @param indices		{Array.<Number>}			Array describing which cluster each entry belongs to
  *
@@ -289,16 +302,17 @@ function findTransition(lastActivity, clusterModel, predictionModels, clusterCou
 }
 
 /**
- * @param lastActivity	 	{activity}							Last activity as recorded for the user
- * @param clusterModel		{clusterModel}						Cluster model corresponding to the activity
- * @param predictionModels	{Array.<predictionModel>}			All the user's prediction models
- * @param clusterCount		{Number}							Number of unique clusters of the user
- * @param finalModel		{clusterModel}						Cluster model corresponding to the final activity
- * @param values			{Array.<Object.<string, number>>}	Dictionary of activities and their corresponding values
+ * @param lastActivity	 	{activity}						Last activity as recorded for the user
+ * @param clusterModels		{Array.<clusterModel>}			All clusterModels corresponding to the activity
+ * @param predictionModels	{Array.<predictionModel>}		All the user's prediction models
+ * @param clusterCount		{Number}						Number of unique clusters of the user
+ * @param finalModel		{clusterModel}					Cluster model corresponding to the final activity
+ * @param values			{Object.<string, number>}		Dictionary of activities and their corresponding values
  *
  * @returns 				{{activity: string, cluster: number, value: number, stepsFromStart: number, stepsFromEnd: number}}	Name of the predicted activity and its cluster
  */
-function findMoment(lastActivity, clusterModel, predictionModels, clusterCount, finalModel, values) {
+function findMoment(lastActivity, clusterModels, predictionModels, clusterCount, finalModel, values) {
+	const clusterModelDict = util.arrToObj(clusterModels, 'activity');
 	const finalActivity = finalModel.activity;
 
 	// Note: Since it doesn't matter which cluster of the final activity is reached, these clusters are merged
@@ -376,17 +390,42 @@ function findMoment(lastActivity, clusterModel, predictionModels, clusterCount, 
 	const H = N.sub(I).mmul(inverse(Ndg));
 
 	// Get index of starting cluster
-	const start = getClusterIdx(lastActivity, clusterModel);
+	const start = getClusterIdx(lastActivity, clusterModelDict[lastActivity.activity]);
 	const startKey = lastActivity.activity + '_' + start;
 	const startIdx = getIndex(startKey);
 
 	// Take corresponding transient probability row H_start
-	const H_start = H.getRowVector(startIdx);
+	const H_start = H.getRowVector(startIdx).to1DArray();
 
 	// Expected number of steps until absorption t
-	const t = N.mmul(Matrix.ones(mergedClusterCount - 1, 1)).to1DArray();
+	const t = N.mmul(Matrix.ones(mergedClusterCount - 1, 1)).add(1).to1DArray();
 
-	const h = 0;
+	// Check the weighting
+	function weighting(probability, values, steps) {
+		const calculatingValues = ((values/4)**2);
+		return calculatingValues*probability*100 - (steps**1.3) + 40;
+	}
+
+	// Get expected values
+	const scores = [];
+	Object.keys(clusterIdxDict).forEach(key => {
+		if (key === finalActivity) {
+			return;
+		}
+		const idx = clusterIdxDict[key];
+		const [activity, cluster] = key.split("_");
+		const value = +values[activity];
+
+		//Add time info
+		const avgTime = clusterModelDict[activity].model.clusters[cluster].gaussian.mu[0][0];
+		const readableTime = convertMinsToHrsMins(avgTime);
+
+		scores[idx] = {key: key, score: weighting(H_start[idx], value, t[idx]), time: readableTime};
+	});
+
+	scores.sort((a, b) => b.score - a.score);
+
+	return scores;
 }
 
 module.exports = {
