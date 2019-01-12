@@ -27,6 +27,17 @@ function refreshCounters() {
 			// Do nothing
 		},
 	});
+
+	$.ajax({
+		type: 'GET',
+		url: 'api/v1/users',
+		success: function(res) {
+			$('#userCount').attr("data-to", res.length||0).each(count);
+		},
+		error: function(xhr, status, error) {
+			// Do nothing
+		},
+	});
 }
 
 $(document).ready(function() {
