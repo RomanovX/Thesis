@@ -5,39 +5,53 @@ function refreshCounters() {
 		$this.countTo(options);
 	}
 
-	$.ajax({
-		type: 'GET',
-		url: 'api/v1/activities',
-		success: function(res) {
-			$('#totalCount').attr("data-to", res.count||0).each(count);
-			$('#activitiesCount').attr("data-to", res.unique||0).each(count);
-		},
-		error: function(xhr, status, error) {
-			// Do nothing
-		},
-	});
+	a1();
 
-	$.ajax({
-		type: 'GET',
-		url: 'api/v1/clusters',
-		success: function(res) {
-			$('#clusterCount').attr("data-to", res.length||0).each(count);
-		},
-		error: function(xhr, status, error) {
-			// Do nothing
-		},
-	});
+	function a1() {
+		$.ajax({
+			type: 'GET',
+			url: 'api/v1/activities',
+			success: function(res) {
+				$('#totalCount').attr("data-to", res.count||0).each(count);
+				$('#activitiesCount').attr("data-to", res.unique||0).each(count);
+			},
+			error: function(xhr, status, error) {
+				// Do nothing
+			},
+			complete: function() {
+				a2();
+			}
+		});
+	}
 
-	$.ajax({
-		type: 'GET',
-		url: 'api/v1/users',
-		success: function(res) {
-			$('#userCount').attr("data-to", res.length||0).each(count);
-		},
-		error: function(xhr, status, error) {
-			// Do nothing
-		},
-	});
+	function a2() {
+		$.ajax({
+			type: 'GET',
+			url: 'api/v1/clusters',
+			success: function (res) {
+				$('#clusterCount').attr("data-to", res.length || 0).each(count);
+			},
+			error: function (xhr, status, error) {
+				// Do nothing
+			},
+			complete: function() {
+				a3();
+			}
+		});
+	}
+
+	function a3() {
+		$.ajax({
+			type: 'GET',
+			url: 'api/v1/users',
+			success: function (res) {
+				$('#userCount').attr("data-to", res.length || 0).each(count);
+			},
+			error: function (xhr, status, error) {
+				// Do nothing
+			},
+		});
+	}
 }
 
 $(document).ready(function() {

@@ -16,8 +16,8 @@ $(document).ready(function() {
 			type: 'POST',
 			url: 'api/v1/activities',
 			data: $(this).serialize(),
-			success: function() {
-				$('#uploadStatus').text("Your activity was successfully uploaded!")
+			success: function(xhr) {
+				$('#uploadStatus').text("Your activity was successfully uploaded! The predicted cluster is: " + xhr.cluster)
 			},
 			error: function(xhr, status, error) {
 				$('#uploadStatus').text("Error! Your activity was not uploaded. Error message: " + (xhr.responseText || xhr.statusText))
@@ -32,6 +32,8 @@ $(document).ready(function() {
 			type: 'POST',
 			url: 'api/v1/activities/bulk',
 			data: new FormData(this),
+			processData: false,
+			contentType: false,
 			success: function() {
 				$('#uploadStatus').text("Your activity file was successfully uploaded!")
 			},

@@ -434,4 +434,5 @@ module.exports = {
 	predict: predict,
 	findMoment: findMoment,
 	findTransition: findTransition,
+	getClusterIdx: getClusterIdx,
 };

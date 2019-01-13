@@ -43,7 +43,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Automatically parsing form data
-app.use(formidable());
+app.use(formidable({multiples: true}));
 
 app.use('/', basicRouter);
 app.use('/api/v1', apiRouter);

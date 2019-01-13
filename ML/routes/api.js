@@ -75,7 +75,14 @@ router.post('/activities', function(req, res, next) {
 
 		await(act.save(defer()));
 
-		res.status(200).send();
+		const clusterModel = await(ClusterModel.find({user: req.body.user, activity: req.body.activity}));
+		let clusterKey = "No cluster model for this activity yet.";
+		if (clusterModel) {
+			const clusterIdx = prediction.getClusterIdx(req.body.activity, clusterModel);
+			clusterKey = req.body.activity + "_" + clusterIdx;
+		}
+
+		res.status(200).send({cluster: clusterKey});
 	}, (err) => {
 		if(err) {
 			log.e(err);
@@ -92,69 +99,73 @@ router.post('/activities/bulk', function(req, res, next) {
 		}
 
 		const user = req.fields.user;
-		let activities = [];
 
-		// Try xes file
-		try {
-			const xml = await(fs.readFile(req.files.file.path, defer()));
-			const json = x2j.toJson(xml, {
-				object: true
-			});
-			if (json.log && json.log.trace && json.log["xes.version"]) {
-				let entries = json.log.trace.reduce((acts, trace) => {
-					return acts.concat(trace.event.map(entry => {
-						return {
-							activity: entry.string[0].value,
-							date: new Date(entry.date.value),
-							status: entry.string[1].value
-						};
-					}))
-				}, []);
+		req.files.file.forEach(file => {
+			let activities = [];
 
-				if(entries.length % 2 !== 0) {
-					throw new Error("Not every activity has a start and an end entry");
-				}
+			// Try xes file
+			try {
+				const xml = await(fs.readFile(file.path, defer()));
+				const json = x2j.toJson(xml, {
+					object: true
+				});
+				if (json.log && json.log.trace && json.log["xes.version"]) {
+					let entries = json.log.trace.reduce((acts, trace) => {
+						return acts.concat(trace.event.map(entry => {
+							return {
+								activity: entry.string[0].value,
+								date: new Date(entry.date.value),
+								status: entry.string[1].value
+							};
+						}))
+					}, []);
 
-				//entries.sort((a,b) => a.date - b.date);
-
-				// First store the starting and only move to the final store upon also completed
-				const startingEntries = [];
-
-				entries.forEach(entry => {
-					if(entry.activity === "Start" || entry.activity === "End") {
-						return;
+					if(entries.length % 2 !== 0) {
+						throw new Error("Not every activity has a start and an end entry");
 					}
 
-					if (entry.status === "start") {
-						startingEntries.push({
-							user: user,
-							activity: entry.activity,
-							start: entry.date
-						})
-					}
+					//entries.sort((a,b) => a.date - b.date);
 
-					if (entry.status === "complete") {
-						const event = startingEntries.find(startingEntry => startingEntry.activity === entry.activity);
+					// First store the starting and only move to the final store upon also completed
+					const startingEntries = [];
 
-						if (!event) {
-							throw new Error("Not every activity has a start and an end entry");
+					entries.forEach(entry => {
+						if(entry.activity === "Start" || entry.activity === "End") {
+							return;
 						}
 
-						// remove from the array
-						startingEntries.splice(startingEntries.indexOf(event), 1);
+						if (entry.status === "start") {
+							startingEntries.push({
+								user: user,
+								activity: entry.activity,
+								start: entry.date
+							})
+						}
 
-						event.end = entry.date;
-						event.duration = Math.round((event.end - event.start) / 1000);
-						activities.push(event);
-					}
-				});
+						if (entry.status === "complete") {
+							const event = startingEntries.find(startingEntry => startingEntry.activity === entry.activity);
+
+							if (!event) {
+								throw new Error("Not every activity has a start and an end entry");
+							}
+
+							// remove from the array
+							startingEntries.splice(startingEntries.indexOf(event), 1);
+
+							event.end = entry.date;
+							event.duration = Math.round((event.end - event.start) / 1000);
+							activities.push(event);
+						}
+					});
+				}
+			} catch (err) {
+				res.status(400).send('Failed to process bulk activity file: ' + err.message);
+				activities = [];
 			}
-		} catch (err) {
-			res.status(400).send('Failed to process bulk activity file: ' + err.message);
-			activities = [];
-		}
 
-		await(Activity.insertMany(activities, defer()));
+			await(Activity.insertMany(activities, defer()));
+		});
+
 
 		res.status(200).send();
 	}, (err) => {
