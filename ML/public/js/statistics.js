@@ -72,13 +72,6 @@ $(document).ready(function() {
 				window.location.reload();
 			}
 		});
-		$.ajax({
-			type: 'DELETE',
-			url: 'api/v1/users',
-			success: function() {
-				window.location.reload();
-			}
-		});
 	});
 
 	const spinner = $('#spinner').hide();
