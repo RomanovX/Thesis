@@ -267,6 +267,7 @@ router.get('/clusters', function(req, res, next) {
 	});
 });
 
+// TODO: This should be a different endpoint or something, because like this it isn't restful
 router.post('/clusters', function(req, res, next) {
 	fiber(() => {
 		if (req.body && !(Object.keys(req.body).length === 0 && req.body.constructor === Object)) {
