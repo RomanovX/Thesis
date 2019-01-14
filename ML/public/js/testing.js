@@ -62,7 +62,7 @@ $(document).ready(function() {
 				momentSpinner.hide();
 			},
 			success: function(xhr) {
-				$('#status').html(`Your ideal moment would be:\n${JSON.stringify(xhr[0])}\nShortly followed by:\n${JSON.stringify(xhr[1])}\n${JSON.stringify(xhr[2])}`).wrap('<pre />')
+				$('#status').html(`Your current cluster is:\n${xhr.currentKey}\nYour ideal moment would be:\n${JSON.stringify(xhr.scores[0])}\nShortly followed by:\n${JSON.stringify(xhr.scores[1])}\n${JSON.stringify(xhr.scores[2])}`).wrap('<pre />')
 			},
 			error: function(xhr) {
 				$('#status').text("Error getting moment: " + (xhr.responseText || xhr.statusText))

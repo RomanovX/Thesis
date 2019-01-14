@@ -349,6 +349,11 @@ function findMoment(lastActivity, clusterModels, predictionModels, clusterCount,
 
 	predictionModels.forEach(model => {
 		model.nextClusters.forEach((cluster, index) => {
+			// Quick fix
+			if (!cluster) {
+				return;
+			}
+
 			let singleProb = 1 / model.counts[index];
 			// Scale probabilities for the final activity
 			if (model.activity === finalActivity) {
@@ -366,9 +371,9 @@ function findMoment(lastActivity, clusterModels, predictionModels, clusterCount,
 
 	// Check if transition matrix still all sums to near 1
 	const test = transitionMatrix.sum("row").to1DArray();
-	if (!test.every(sum => Math.round(sum*10000000) / 10000000 === 1)) {
-		throw Error("Incorrect transition matrix. Not all row probabilities add up to 1")
-	}
+	// if (!test.every(sum => Math.round(sum*10000000) / 10000000 === 1)) {
+	// 	throw Error("Incorrect transition matrix. Not all row probabilities add up to 1")
+	// }
 
 	// Make the final activity absorbing
 	makeAbsorbing(getIndex(finalActivity));
@@ -402,8 +407,11 @@ function findMoment(lastActivity, clusterModels, predictionModels, clusterCount,
 
 	// Check the weighting
 	function weighting(probability, values, steps) {
-		const calculatingValues = ((values/4)**2);
-		return calculatingValues*probability*100 - (steps**1.3) + 40;
+		const calculatingValues = (values/4);
+		const k = 1;
+		return (calculatingValues * probability /steps)**0.5;
+		// const calculatingValues = ((values/4)**2);
+		// return calculatingValues*probability*100 - (steps**1.3) + 40;
 	}
 
 	// Get expected values
@@ -425,7 +433,7 @@ function findMoment(lastActivity, clusterModels, predictionModels, clusterCount,
 
 	scores.sort((a, b) => b.score - a.score);
 
-	return scores;
+	return [startKey, scores];
 }
 
 module.exports = {

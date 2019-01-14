@@ -465,8 +465,8 @@ router.get('/moment', function(req, res, next) {
 			}
 		});
 
-		const moment = prediction.findMoment(lastActivity, clusterModels, predictionModels, clusterCount, finalModel, values);
-		res.status(200).send(moment);
+		const [currentKey, scores] = prediction.findMoment(lastActivity, clusterModels, predictionModels, clusterCount, finalModel, values);
+		res.status(200).send({currentKey: currentKey, scores: scores});
 	}, (err) => {
 		if(err) {
 			log.e(err);
