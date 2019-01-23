@@ -40,7 +40,7 @@ function getMinutesSinceMidnight(activity) {
 	// Denormalize start
 	const normalizedStart = activity.start;
 	const timezoneOffset = normalizedStart.getTimezoneOffset() * 60000;
-	const start = normalizedStart + timezoneOffset;
+	const start = new Date(+normalizedStart +timezoneOffset);
 
 	const hours = start.getHours();
 	const minutes = start.getMinutes() + (hours * 60);
@@ -116,7 +116,7 @@ function getStationaryMatrix(transitionMatrix) {
 }
 
 /**
- * @param activities	{Array.<activity>}		Array of activity objects
+ * @param activities	{Array.<activity>}		Array of activity objects of specific activity
  */
 function calculateClusters(activities) {
 	// Initialize all resulting arrays
@@ -323,7 +323,7 @@ function defaultScoring(expectedValue, steps) {
  * @returns 				{{startKey: string, scores: Array}}
  */
 function findMoment(lastActivity, clusterModels, predictionModels, clusterCount, finalModel, values, scoringFunction = defaultScoring) {
-	const clusterModelDict = util.arrToObj(clusterModels, 'activity');
+	const clusterModelDict = util.arrToDict(clusterModels, 'activity');
 	const finalActivity = finalModel.activity;
 
 	// Note: Since it doesn't matter which cluster of the final activity is reached, these clusters are merged

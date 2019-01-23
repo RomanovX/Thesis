@@ -340,11 +340,10 @@ router.post('/clusters', function(req, res, next) {
 		users.forEach(user => {
 			let [userClusters, userClusterModels, userPredictionModels] = calculateForUser(user);
 
-			clusters.concat(userClusters);
-			clusterModels.concat(userClusterModels);
-			predictionModels.concat(userPredictionModels);
+			clusters = clusters.concat(userClusters);
+			clusterModels = clusterModels.concat(userClusterModels);
+			predictionModels = predictionModels.concat(userPredictionModels);
 		});
-
 
 		// Clear all existing data and write newly calculated data.
 		await(Cluster.remove({}, defer()));
@@ -497,12 +496,7 @@ router.get('/moment', function(req, res, next) {
 router.get('/results', function(req, res, next) {
 	fiber(() => {
 		/* START Preparing data */
-
-		// Delete clusters and prediction models
-		await(Cluster.remove({}, defer()));
-		await(ClusterModel.remove({}, defer()));
-		await(PredictionModel.remove({}, defer()));
-
+		log.i("TESTS: Preparing data");
 		// Get users
 		const users = await(Activity.distinct('user', defer()));
 
@@ -534,9 +528,9 @@ router.get('/results', function(req, res, next) {
 
 		/* END Preparing data */
 
-		const results = testing.run(users, userActivities, userActivityNames, userValues);
+		const results = testing.run(users, userActivities, userValues);
 
-		res.status(200).send();
+		res.status(200).send(results);
 	}, (err) => {
 		if(err) {
 			log.e(err);
