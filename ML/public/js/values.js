@@ -35,7 +35,7 @@ $(document).ready(function() {
 
 			activities.forEach(activity => {
 				if (!(activity in values)) {
-					values[activity] = 3; // Middle value
+					values[activity] = 2; // Middle value
 				}
 			});
 
@@ -69,7 +69,7 @@ $(document).ready(function() {
 		});
 		$.ajax({
 			type: 'get',
-			url: `api/v1/clustermodels?user=${user}`,
+			url: `api/v1/activities?user=${user}`,
 			success: function(xhr) {
 				if (!xhr || xhr.length === 0) {
 					st2.text("This user has no recorded activities");
@@ -77,7 +77,7 @@ $(document).ready(function() {
 				}
 				st2.text("Successfully loaded user activities");
 				callCounter++;
-				activities = xhr.map(model => model.activity);
+				activities = xhr.activities;
 				populateForm();
 			},
 			error: function(xhr) {

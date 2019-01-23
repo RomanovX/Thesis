@@ -2,6 +2,7 @@ $(document).ready(function() {
 	const predictSpinner = $('#predictSpinner').hide();
 	const momentSpinner = $('#momentSpinner').hide();
 	const transitionSpinner = $('#transitionSpinner').hide();
+	const testSpinner = $('#testSpinner').hide();
 
 	$('#predict').click(function(e) {
 		e.preventDefault();
@@ -66,6 +67,27 @@ $(document).ready(function() {
 			},
 			error: function(xhr) {
 				$('#status').text("Error getting moment: " + (xhr.responseText || xhr.statusText))
+			},
+		});
+	});
+
+	$('#test').click(function(e) {
+		e.preventDefault();
+		$('#status').text("");
+		$.ajax({
+			type: 'get',
+			url: `api/v1/results`,
+			beforeSend: function() {
+				testSpinner.show();
+			},
+			complete: function() {
+				testSpinner.hide();
+			},
+			success: function(xhr) {
+				$('#status').html(`Success`).wrap('<pre />')
+			},
+			error: function(xhr) {
+				$('#status').text("Error getting results: " + (xhr.responseText || xhr.statusText))
 			},
 		});
 	});

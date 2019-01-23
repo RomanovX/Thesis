@@ -37,8 +37,13 @@ const util = require('./util');
  * @returns 		{Number}	Starting time in minutes since start of day
  */
 function getMinutesSinceMidnight(activity) {
-	const hours = activity.start.getHours();
-	const minutes = activity.start.getMinutes() + (hours * 60);
+	// Denormalize start
+	const normalizedStart = activity.start;
+	const timezoneOffset = normalizedStart.getTimezoneOffset() * 60000;
+	const start = normalizedStart + timezoneOffset;
+
+	const hours = start.getHours();
+	const minutes = start.getMinutes() + (hours * 60);
 	//const seconds = activity.start.getSeconds() + (minutes * 60);
 
 	return minutes;
@@ -301,6 +306,11 @@ function findTransition(lastActivity, clusterModel, predictionModels, clusterCou
 	return transitionMatrix;
 }
 
+function defaultScoring(expectedValue, steps) {
+	return expectedValue/steps;
+}
+
+
 /**
  * @param lastActivity	 	{activity}						Last activity as recorded for the user
  * @param clusterModels		{Array.<clusterModel>}			All clusterModels corresponding to the activity
@@ -308,10 +318,11 @@ function findTransition(lastActivity, clusterModel, predictionModels, clusterCou
  * @param clusterCount		{Number}						Number of unique clusters of the user
  * @param finalModel		{clusterModel}					Cluster model corresponding to the final activity
  * @param values			{Object.<string, number>}		Dictionary of activities and their corresponding values
+ * @param scoringFunction	{Function=}						Function that weighs the expected value and the expected number of steps
  *
- * @returns 				{{activity: string, cluster: number, value: number, stepsFromStart: number, stepsFromEnd: number}}	Name of the predicted activity and its cluster
+ * @returns 				{{startKey: string, scores: Array}}
  */
-function findMoment(lastActivity, clusterModels, predictionModels, clusterCount, finalModel, values) {
+function findMoment(lastActivity, clusterModels, predictionModels, clusterCount, finalModel, values, scoringFunction = defaultScoring) {
 	const clusterModelDict = util.arrToObj(clusterModels, 'activity');
 	const finalActivity = finalModel.activity;
 
@@ -405,15 +416,6 @@ function findMoment(lastActivity, clusterModels, predictionModels, clusterCount,
 	// Expected number of steps until absorption t
 	const t = N.mmul(Matrix.ones(mergedClusterCount - 1, 1)).add(1).to1DArray();
 
-	// Check the weighting
-	function weighting(probability, values, steps) {
-		const calculatingValues = (values/4);
-		const k = 1;
-		return (calculatingValues * probability /steps)**0.5;
-		// const calculatingValues = ((values/4)**2);
-		// return calculatingValues*probability*100 - (steps**1.3) + 40;
-	}
-
 	// Get expected values
 	const scores = [];
 	Object.keys(clusterIdxDict).forEach(key => {
@@ -428,12 +430,14 @@ function findMoment(lastActivity, clusterModels, predictionModels, clusterCount,
 		const avgTime = clusterModelDict[activity].model.clusters[cluster].gaussian.mu[0][0];
 		const readableTime = convertMinsToHrsMins(avgTime);
 
-		scores[idx] = {key: key, score: weighting(H_start[idx], value, t[idx]), time: readableTime};
+		const expectedValue = H_start[idx] * value;
+
+		scores[idx] = {key: key, score: scoringFunction(expectedValue, t[idx]), time: readableTime};
 	});
 
 	scores.sort((a, b) => b.score - a.score);
 
-	return [startKey, scores];
+	return {startKey, scores};
 }
 
 module.exports = {

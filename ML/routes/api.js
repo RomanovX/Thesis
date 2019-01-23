@@ -3,14 +3,58 @@ const router = express.Router();
 const {await, fiber, defer} = require('synchronize');
 const x2j = require('xml2json');
 const fs = require('fs');
+const formidable = require('express-formidable');
 
 const log = require('../lib/log');
 const prediction = require('../lib/prediction');
+const testing = require('../lib/testing');
 const Activity = require('../models/activity');
 const Cluster = require('../models/cluster');
 const User = require('../models/user');
 const ClusterModel = require('../models/clusterModel');
 const PredictionModel = require('../models/predictionModel');
+
+function calculateForUser(user) {
+	let clusters = [], clusterModels = [];
+
+	log.i(`Calculating clusters for user: ${user}`);
+	const userClusterModels = [];
+	const activityNames = await(Activity.distinct('activity', {user: user}, defer()));
+	activityNames.forEach(activity => {
+		log.v(`Processing activity: ${activity}`);
+		const entries = await(Activity.find({user: user, activity: activity}, defer()));
+		const result = prediction.calculateClusters(entries);
+		result.clusters.forEach((cluster, i) => {
+			const newCluster = {
+				user: user,
+				activity: activity,
+				parameters: cluster,
+				duration: result.durations[i],
+			};
+			clusters.push(newCluster);
+		});
+
+		const newClusterModel = {
+			user: user,
+			activity: activity,
+			model: result.model
+		};
+		userClusterModels.push(newClusterModel);
+		clusterModels.push(newClusterModel);
+	});
+
+	log.i(`Calculating prediction models`);
+	const userActivities = await(Activity.find({user: user}).sort({start: 1}).exec(defer()));
+	const predictionModels = prediction.calculatePredictionModels(userActivities, userClusterModels);
+
+	return [clusters, clusterModels, predictionModels];
+}
+
+function normalizeDate(dateString) {
+	const date = new Date(dateString);
+	const timezoneOffset = date.getTimezoneOffset() * 60000;
+	return date - timezoneOffset;
+}
 
 // TODO: Rewrite all per user
 router.get('/activities', function(req, res, next) {
@@ -63,19 +107,20 @@ router.post('/activities', function(req, res, next) {
 		}
 
 		// TODO: this does not handle timezone differences
-		const startDateTime = new Date(req.body.startDate + " " + req.body.startTime);
-		const endDateTime = new Date(req.body.endDate + " " + req.body.endTime);
+		const startDateTime = normalizeDate(req.body.startDate + " " + req.body.startTime);
+		const endDateTime = normalizeDate(req.body.endDate + " " + req.body.endTime);
 
 		const act = new Activity({
 			user: req.body.user,
 			activity: req.body.activity,
 			start: startDateTime,
 			end: endDateTime,
+			duration: Math.round((endDateTime - startDateTime) / 1000)
 		});
 
 		await(act.save(defer()));
 
-		const clusterModel = await(ClusterModel.find({user: req.body.user, activity: req.body.activity}));
+		const clusterModel = await(ClusterModel.findOne({user: req.body.user, activity: req.body.activity}, defer()));
 		let clusterKey = "No cluster model for this activity yet.";
 		if (clusterModel) {
 			const clusterIdx = prediction.getClusterIdx(req.body.activity, clusterModel);
@@ -91,7 +136,7 @@ router.post('/activities', function(req, res, next) {
 	});
 });
 
-router.post('/activities/bulk', function(req, res, next) {
+router.post('/activities/bulk', formidable({multiples: true}), function(req, res, next) {
 	fiber(() => {
 		if(!req.files || !req.files.file || req.files.file.size === 0 || !req.fields || req.fields.user === "") {
 			res.status(400).send();
@@ -114,7 +159,7 @@ router.post('/activities/bulk', function(req, res, next) {
 						return acts.concat(trace.event.map(entry => {
 							return {
 								activity: entry.string[0].value,
-								date: new Date(entry.date.value),
+								date: normalizeDate(entry.date.value),
 								status: entry.string[1].value
 							};
 						}))
@@ -229,7 +274,7 @@ router.post('/users/:id', function(req, res, next) {
 		user.values = req.body;
 
 		await(user.save(defer()));
-		res.status(200);
+		res.status(200).send();
 	}, (err) => {
 		if(err) {
 			log.e(err);
@@ -287,43 +332,17 @@ router.post('/clusters', function(req, res, next) {
 		}
 
 		// Storage arrays for data spanning all users
-		const clusters = [];
-		const clusterModels = [];
+		let clusters = [];
+		let clusterModels = [];
 		let predictionModels = [];
 
 		const users = await(Activity.distinct('user', defer()));
 		users.forEach(user => {
-			log.i(`Calculating clusters for user: ${user}`);
-			const userClusterModels = [];
-			const activityNames = await(Activity.distinct('activity', {user: user}, defer()));
-			activityNames.forEach(activity => {
-				log.v(`Processing activity: ${activity}`);
-				const entries = await(Activity.find({user: user, activity: activity}, defer()));
-				const result = prediction.calculateClusters(entries);
-				result.clusters.forEach((cluster, i) => {
-					const newCluster = {
-						user: user,
-						activity: activity,
-						parameters: cluster,
-						duration: result.durations[i],
-					};
-					clusters.push(newCluster);
-				});
+			let [userClusters, userClusterModels, userPredictionModels] = calculateForUser(user);
 
-				const newClusterModel = {
-					user: user,
-					activity: activity,
-					model: result.model
-				};
-				userClusterModels.push(newClusterModel);
-				clusterModels.push(newClusterModel);
-			});
-
-			log.i(`Calculating prediction models`);
-			const userActivities = await(Activity.find({user: user}).sort({start: 1}).exec(defer()));
-			const userPredictionModels = prediction.calculatePredictionModels(userActivities, userClusterModels);
-
-			predictionModels = predictionModels.concat(userPredictionModels);
+			clusters.concat(userClusters);
+			clusterModels.concat(userClusterModels);
+			predictionModels.concat(userPredictionModels);
 		});
 
 
@@ -461,12 +480,63 @@ router.get('/moment', function(req, res, next) {
 		const values = (user) ? user.values : {};
 		predictionModels.forEach(model => {
 			if (values[model.activity] === undefined) {
-				values[model.activity] = 3;
+				values[model.activity] = 2;
 			}
 		});
 
 		const [currentKey, scores] = prediction.findMoment(lastActivity, clusterModels, predictionModels, clusterCount, finalModel, values);
 		res.status(200).send({currentKey: currentKey, scores: scores});
+	}, (err) => {
+		if(err) {
+			log.e(err);
+			res.status(500).send('Failed to predict next activity: ' + err.message);
+		}
+	});
+});
+
+router.get('/results', function(req, res, next) {
+	fiber(() => {
+		/* START Preparing data */
+
+		// Delete clusters and prediction models
+		await(Cluster.remove({}, defer()));
+		await(ClusterModel.remove({}, defer()));
+		await(PredictionModel.remove({}, defer()));
+
+		// Get users
+		const users = await(Activity.distinct('user', defer()));
+
+		// Get activities per user
+		const userActivities = users.reduce((res, userId) => {
+			res[userId] = await(Activity.find({user: userId}).sort({start: 1}).exec(defer()));
+			return res;
+		}, {});
+
+		// Get distinct activity names per user
+		const userActivityNames = users.reduce((res, userId) => {
+			res[userId] = await(Activity.distinct('activity', {user: userId}, defer()));
+			return res;
+		}, {});
+
+		// Get values per user (and fill in if missing)
+		const userValues = users.reduce((res, userId) => {
+			const user = await(User.findOne({user: userId}, defer()));
+			const values = user ? user.values : {};
+
+			userActivityNames[userId].forEach(activityName => {
+				if (values[activityName] === undefined) {
+					values[activityName] = 2;
+				}
+			});
+			res[userId] = values;
+			return res;
+		}, {});
+
+		/* END Preparing data */
+
+		const results = testing.run(users, userActivities, userActivityNames, userValues);
+
+		res.status(200).send();
 	}, (err) => {
 		if(err) {
 			log.e(err);

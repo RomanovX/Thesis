@@ -4,7 +4,6 @@ const favicon = require('serve-favicon');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
-const formidable = require('express-formidable');
 
 const db = require('./lib/db');
 const log = require('./lib/log');
@@ -41,9 +40,6 @@ app.use(express.urlencoded({ extended: false }));
 app.use(favicon(path.join(__dirname, 'public/images/favicon.ico')));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Automatically parsing form data
-app.use(formidable({multiples: true}));
 
 app.use('/', basicRouter);
 app.use('/api/v1', apiRouter);
