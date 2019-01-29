@@ -494,6 +494,7 @@ router.get('/moment', function(req, res, next) {
 });
 
 router.get('/results', function(req, res, next) {
+	// TODO: This is not at all optimized
 	fiber(() => {
 		/* START Preparing data */
 		log.i("TESTS: Preparing data");
@@ -512,23 +513,23 @@ router.get('/results', function(req, res, next) {
 			return res;
 		}, {});
 
-		// Get values per user (and fill in if missing)
-		const userValues = users.reduce((res, userId) => {
-			const user = await(User.findOne({user: userId}, defer()));
-			const values = user ? user.values : {};
-
-			userActivityNames[userId].forEach(activityName => {
-				if (values[activityName] === undefined) {
-					values[activityName] = 2;
-				}
-			});
-			res[userId] = values;
-			return res;
-		}, {});
+		// // Get values per user (and fill in if missing)
+		// const userValues = users.reduce((res, userId) => {
+		// 	const user = await(User.findOne({user: userId}, defer()));
+		// 	const values = user ? user.values : {};
+		//
+		// 	userActivityNames[userId].forEach(activityName => {
+		// 		if (values[activityName] === undefined) {
+		// 			values[activityName] = 2;
+		// 		}
+		// 	});
+		// 	res[userId] = values;
+		// 	return res;
+		// }, {});
 
 		/* END Preparing data */
 
-		const results = testing.run(users, userActivities, userValues);
+		const results = testing.run(users, userActivities);
 
 		res.status(200).send(results);
 	}, (err) => {

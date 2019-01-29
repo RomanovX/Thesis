@@ -5,18 +5,18 @@ const log = require('./log');
 const extend = require('extend');
 
 function getScoringFunction(m, n) {
-	return function (value, steps) {
-		return (value**m)/(steps**n);
+	return function (probability, value, steps) {
+		return probability * (value**m)/(steps**n);
 	}
 }
 
 /**
  * @param activities	{Array.<activity>} 	Array of activities
  *
- * @returns 			{{training: Array<activity>, testing: Array<activity>}}
+ * @returns 			{{training: Array.<activity>, testing: Array.<activity>}}
  */
 function splitActivities(activities) {
-	const split = Math.floor(activities.length * 8 / 10);
+	const split = Math.floor(activities.length * 9 / 10);
 	return {
 		training: activities.slice(0, split),
 		testing: activities.slice(split)
@@ -35,6 +35,11 @@ function splitActivities(activities) {
 function addActivity(lastActivity, activities, futureActivities, clusterModelDict, predictionModelDict) {
 	// Get new activity and its information
 	const nextActivity = futureActivities.shift();
+
+	if (!nextActivity) {
+		throwEmptyActivityListError();
+	}
+
 	const nextClusterIdx = prediction.getClusterIdx(nextActivity, clusterModelDict[nextActivity.activity]);
 	const nextKey = nextActivity.activity + "_" + nextClusterIdx;
 
@@ -48,9 +53,6 @@ function addActivity(lastActivity, activities, futureActivities, clusterModelDic
 	const predictionModel = predictionModelDict[lastActivity.activity];
 	const nextClusters = predictionModel.nextClusters[lastClusterIdx];
 	const counts = predictionModel.counts;
-	// if (!predictionModel.nextClusters[lastClusterIdx]) {
-	// 	predictionModel.nextClusters[lastClusterIdx] = {};
-	// }
 
 	if (!nextClusters[nextKey]) {
 		nextClusters[nextKey] = 1;
@@ -68,26 +70,10 @@ function addActivity(lastActivity, activities, futureActivities, clusterModelDic
 }
 
 /**
- * @param type			{string} 	Type of test
- * @param activityName	{string}	Activity name
- * @param userValues	{Object.<string, number>>} Dictionary of user values per activity
- *
- * @returns 			{Object.<string, number>}	Dictionary mapping each activity to a value;
+ * @returns					{Number}	Random value between 0 and 4
  */
-function testingUserValues(type, activityName, userValues) {
-	const defaultValue = 2;
-	switch (type) {
-		case 'valueIndependent':
-			return defaultValue;
-		case 'random':
-			return Math.floor(Math.random() * 4);
-		case 'onlyToilet':
-			return (activityName === 'toilet') ? defaultValue : 0;
-		case 'userValues':
-			return userValues[activityName];
-		default:
-			throw Error("Unknown type selected");
-	}
+function getRandomUserValue() {
+	return Math.floor(Math.random() * 4);
 }
 
 function throwEmptyActivityListError() {
@@ -98,186 +84,208 @@ function throwEmptyActivityListError() {
 }
 
 /**
+ * @param scenarioParameters	{{m: number, n: number}} 		Describing scenario parameters
+ * @param deadline				{string}						Deadline activity name
+ * @param lastActivity			{activity}						Last recorded activity
+ * @param activities			{Array.<activity>} 				Array of past activities
+ * @param futureActivities		{Array.<activity>} 				Array of future activities
+ * @param predictionModels		{Array.<predictionModel>} 		Array of prediction models
+ * @param clusterCount			{number}						Number of clusters
+ * @param clusterModels			{Array.<clusterModel>} 			Array of cluster models
+ * @param clusterModelDict		{Object.<string, clusterModel>} Dictionary of cluster models
+ * @param userValues			{Object.<string, number>} 		Dictionary of user values per activity
+ *
+ * @returns 					{{success: boolean, normalizedScore: number, moment: string}}	 Scenario results
+ */
+function getResultsForScenario(scenarioParameters, deadline, lastActivity, activities, futureActivities, predictionModels, clusterCount, clusterModels, clusterModelDict, userValues) {
+	// Copy all data that is bound to change
+	const testActivities = extend(true, [], activities);
+	const testFutureActivities = extend(true, [], futureActivities);
+	const testPredictionModels = extend(true, [], predictionModels);
+	const testPredictionModelDict = util.arrToDict(testPredictionModels, "activity");
+
+	let testLastActivity = extend(true, {}, lastActivity);
+
+	let predictions = [];
+	let success = false;
+	let moment = deadline;
+	let normalizedScore = 0;
+	while (true) {
+		testLastActivity = addActivity(testLastActivity, testActivities, testFutureActivities, clusterModelDict, testPredictionModelDict);
+
+		if (testLastActivity.activity === deadline) {
+			break;
+		}
+
+		const testLastActivityClusterIdx = prediction.getClusterIdx(testLastActivity, clusterModelDict[testLastActivity.activity]);
+		const testLastActivityKey = testLastActivity.activity + "_" + testLastActivityClusterIdx;
+
+		const predictionIdx = predictions.slice(0, 3).indexOf(testLastActivityKey);
+		if (predictions.length > 0 && predictionIdx !== -1) {
+			moment = predictions[predictionIdx].key.split("_")[0];
+			const score = predictions[predictionIdx].defaultScore;
+			normalizedScore = score * userValues[moment] / userValues[moment] ** scenarioParameters.m;
+			success = true;
+			break;
+		}
+
+		const predictionObject = prediction.findMoment(testLastActivity, clusterModels, predictionModels, clusterCount, clusterModelDict[deadline], userValues, getScoringFunction(scenarioParameters.m, scenarioParameters.n));
+		predictions = predictionObject.scores;
+	}
+
+	return {
+		success: success,
+		normalizedScore: normalizedScore,
+		moment: moment,
+	};
+}
+
+/**
  * @param users				{Array.<string>} 					Array of user ids
  * @param userActivities	{Object.<string, Array<activity>>}	Dictionary of activity entries per user
- * @param userValues		{Object.<string, Object.<string, number>>}	Dictionary of values per user
  *
  * @returns 				{Object.<string, number>}			Dictionary mapping each activity to a value;
  */
-module.exports.run = function(users, userActivities, userValues) {
-	/* Scenarios:
-	 *	 - Different user values:
-	 *	   - valueIndependent: all default
-	 *	   - random
-	 *	   - onlyToilet: all 0,
-	 *   - several values of m
-	 *   - several values of n
-	 *   - different deadline activity (sleeping / outdoors)
-	 *
-	 *   - Use 2 users combined for testing the 3rd?
-	 */
-
+module.exports.run = function(users, userActivities) {
 	const results = [];
 
-	const scenarios = [
-		'valueIndependent',
-		'random',
-		'onlyToilet',
-		'userValues',
-	];
+	const scenarios = {
+		onlyTime: {m: 0, n: 1},
+		onlyValue: {m: 1, n: 0},
+		default: {m: 1, n: 0},
+	};
 
 	const deadlines = [
 		'sleep',
-		'outdoor',
+		'outdoors',
 	];
 
-
 	/* START General testing per user */
-	try {
-		users.forEach(user => {
-			// Prepare activities
-			log.i("TESTS: Preparing activities");
-			const splitActivitiesObject = splitActivities(userActivities[user]);
-			const activities = splitActivitiesObject.training;
-			const futureActivities = splitActivitiesObject.testing;
+	users.forEach(user => {
+		// Prepare activities
+		log.i("TESTS: Preparing activities");
+		const splitActivitiesObject = splitActivities(userActivities[user]);
+		const activities = splitActivitiesObject.training;
+		const futureActivities = splitActivitiesObject.testing;
 
-			// Calculate clusters based on the training activities
-			log.i("TESTS: Calculating clusters");
-			const clusterModels = [];
-			const clusterModelDict = {};
-			let clusterCount = 0;
-			const activitiesDict = util.groupBy(activities, 'activity');
-			Object.keys(activitiesDict).forEach(activityName => {
-				log.d("TESTS: Calculating clusters: " + activityName);
-				const clusters = prediction.calculateClusters(activitiesDict[activityName]);
-				const clusterModel = {
-					user: user,
-					activity: activityName,
-					model: clusters.model
-				};
-				clusterCount += clusters.model.numClusters;
-				clusterModels.push(clusterModel);
-				clusterModelDict[activityName] = clusterModel;
-			});
-
-			// Calculate prediction models
-			log.i("TESTS: Calculating prediction models");
-			const predictionModels = prediction.calculatePredictionModels(activities, clusterModels);
-			const predictionModelDict = util.arrToDict(predictionModels, 'activity');
-
-			// Find last activity and corresponding cluster
-			let lastActivity = activities[activities.length - 1];
-
-
-			// Check for each deadline
-			deadlines.forEach(deadline => {
-				// Keep looping until there are no more testing activities
-				// We put this in a try loop to catch
-				while (true) {
-					try {
-						// Fast-forward to after next instance of deadline
-						// Note: because the dataset contains some quick successions with only 1 or 2 activities inbetween
-						// We are looking for the last one of these successive activities as a start
-						let noSuccessiveFlag = false;
-						let first = true;
-						while (lastActivity.activity !== deadline || !noSuccessiveFlag) {
-							// check if actually enough future activities
-							if (futureActivities.length < 4) {
-								throwEmptyActivityListError();
-							}
-
-							// "Execute" activity (except for the first time, then we just check)
-							if (!first) {
-								lastActivity = addActivity(lastActivity, activities, futureActivities, clusterModelDict, predictionModelDict);
-							} else {
-								first = false;
-							}
-
-							// Check for possible successive activities
-							if (lastActivity.activity === deadline &&
-								futureActivities[0].activity !== deadline &&
-								futureActivities[1].activity !== deadline &&
-								futureActivities[2].activity !== deadline) {
-								noSuccessiveFlag = true;
-							}
-						}
-
-						// Loop for various m and n values
-						for (let m = 1; m <= 5; m += 0.5) {
-							for (let n = 1; n <= 5; n += 0.5) {
-								// Check the various scenarios
-								scenarios.forEach(scenario => {
-									// Copy all data that is bound to change
-									const testActivities = extend(true, [], activities);
-									const testFutureActivities = extend(true, [], futureActivities);
-									const testPredictionModels = extend(true, [], predictionModels);
-									const testPredictionModelDict = util.arrToDict(testPredictionModels, "activity");
-
-									let testLastActivity = extend(true, {}, lastActivity);
-
-									const testUserValues = Object.keys(activitiesDict).reduce((map, activityName) => {
-										map[activityName] = testingUserValues(scenario, activityName, userValues);
-										return map;
-									}, {});
-
-									let predictions = [];
-									let success = false;
-									while (true) {
-										testLastActivity = addActivity(testLastActivity, testActivities, testFutureActivities, clusterModelDict, testPredictionModelDict);
-
-										if (testLastActivity.activity === deadline) {
-											break;
-										}
-
-										const testLastActivityClusterIdx = prediction.getClusterIdx(testLastActivity, clusterModelDict[testLastActivity.activity]);
-										const testLastActivityKey = testLastActivity.activity + "_" + testLastActivityClusterIdx;
-
-										if (predictions.indexOf(testLastActivityKey) !== -1) {
-											success = true;
-											break;
-										}
-
-										const scoresObject = prediction.findMoment(testLastActivity, clusterModels, predictionModels, clusterCount, clusterModelDict[deadline], testUserValues, getScoringFunction(m, n));
-										const scores = scoresObject.scores;
-										predictions = [scores[0].key, scores[1].key, scores[2].key];
-									}
-
-									const result = {
-										user: user,
-										deadline: deadline,
-										scenario: scenario,
-										values: testUserValues,
-										m: m,
-										n: n,
-										success: success,
-									};
-
-									log.d(result);
-
-									results.push(result);
-
-									// Skip to the next section
-									lastActivity = addActivity(lastActivity, testActivities, testFutureActivities, clusterModelDict, testPredictionModelDict);
-								});
-							}
-						}
-					} catch (e) {
-						if (e.name === "EmptyActivityListError") {
-							break;
-						} else {
-							throw e;
-						}
-					}
-				}
-
-
-			});
+		// Calculate clusters based on the training activities
+		log.i("TESTS: Calculating clusters");
+		const clusterModels = [];
+		const clusterModelDict = {};
+		let clusterCount = 0;
+		const activitiesDict = util.groupBy(activities, 'activity');
+		Object.keys(activitiesDict).forEach(activityName => {
+			log.d("TESTS: Calculating clusters: " + activityName);
+			const clusters = prediction.calculateClusters(activitiesDict[activityName]);
+			const clusterModel = {
+				user: user,
+				activity: activityName,
+				model: clusters.model
+			};
+			clusterCount += clusters.model.numClusters;
+			clusterModels.push(clusterModel);
+			clusterModelDict[activityName] = clusterModel;
 		});
 
-		return results;
-	} catch (e) {
-		return results;
-	}
+		// Calculate prediction models
+		log.i("TESTS: Calculating prediction models");
+		const predictionModels = prediction.calculatePredictionModels(activities, clusterModels);
 
+		// Find last activity and corresponding cluster
+		let lastActivity = activities[activities.length - 1];
+
+		// Check for each deadline
+		deadlines.forEach(deadline => {
+			// Copy all data that is bound to change (d means copy per deadline)
+			const dActivities = extend(true, [], activities);
+			const dFutureActivities = extend(true, [], futureActivities);
+			const dPredictionModels = extend(true, [], predictionModels);
+			const dPredictionModelDict = util.arrToDict(dPredictionModels, "activity");
+			let dLastActivity = extend(true, {}, lastActivity);
+
+			// Keep looping until there are no more testing activities
+			// We put this in a try loop to catch
+			while (true) {
+				try {
+					// Fast-forward to after next instance of deadline
+					// Note: because the dataset contains some quick successions with only 1 or 2 activities in between
+					// We are looking for the last one of these successive activities as a start
+					let noSuccessiveFlag = false;
+					let first = true;
+					while (dLastActivity.activity !== deadline || !noSuccessiveFlag) {
+						// check if actually enough future activities
+						if (dFutureActivities.length < 4) {
+							throwEmptyActivityListError();
+						}
+
+						// "Execute" activity (except for the first time, then we just check)
+						if (!first) {
+							dLastActivity = addActivity(dLastActivity, dActivities, dFutureActivities, clusterModelDict, dPredictionModelDict);
+						} else {
+							first = false;
+						}
+
+						// Check for possible successive activities
+						if (dLastActivity.activity === deadline &&
+							dFutureActivities[0].activity !== deadline &&
+							dFutureActivities[1].activity !== deadline &&
+							dFutureActivities[2].activity !== deadline) {
+							noSuccessiveFlag = true;
+						}
+					}
+
+					let constantResult;
+
+					// x random runs
+					const numberOfRuns = 10;
+					for(let i = 1; i <= numberOfRuns; i++) {
+						const testUserValues = Object.keys(activitiesDict).reduce((map, activityName) => {
+							map[activityName] = getRandomUserValue();
+							return map;
+						}, {});
+
+						const result = {
+							user: user,
+							deadline: deadline,
+							scenarios: {},
+							userValues: testUserValues
+						};
+
+						// Check the various scenarios
+						Object.keys(scenarios).forEach(scenario => {
+							const scenarioParameters = scenarios[scenario];
+							let scenarioResult;
+							if (scenarioParameters.m === 0 && constantResult) {
+								scenarioResult = constantResult;
+							} else {
+								scenarioResult = getResultsForScenario(scenarioParameters, deadline, dLastActivity, dActivities, dFutureActivities, dPredictionModels, clusterCount, clusterModels, clusterModelDict, testUserValues);
+								if (scenarioParameters.m === 0 && !constantResult) {
+									constantResult = scenarioResult;
+								}
+							}
+
+							result.scenarios[scenario] = scenarioResult;
+						});
+
+						results.push(result);
+						log.d(`TESTS: Running test ${i}/${numberOfRuns}`)
+					}
+
+					// Skip to the next section
+					dLastActivity = addActivity(dLastActivity, dActivities, dFutureActivities, clusterModelDict, dPredictionModelDict);
+					log.d(`TESTS: Future activities remaining: ${dFutureActivities.length}`)
+
+				} catch (e) {
+					if (e.name === "EmptyActivityListError") {
+						break;
+					} else {
+						throw e;
+					}
+				}
+			}
+		});
+	});
 	/* END General testing per user */
+
+	return results;
 };

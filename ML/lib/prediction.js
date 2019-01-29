@@ -306,8 +306,8 @@ function findTransition(lastActivity, clusterModel, predictionModels, clusterCou
 	return transitionMatrix;
 }
 
-function defaultScoring(expectedValue, steps) {
-	return expectedValue/steps;
+function defaultScoring(probability, value, steps) {
+	return probability * value / steps;
 }
 
 
@@ -430,9 +430,7 @@ function findMoment(lastActivity, clusterModels, predictionModels, clusterCount,
 		const avgTime = clusterModelDict[activity].model.clusters[cluster].gaussian.mu[0][0];
 		const readableTime = convertMinsToHrsMins(avgTime);
 
-		const expectedValue = H_start[idx] * value;
-
-		scores[idx] = {key: key, score: scoringFunction(expectedValue, t[idx]), time: readableTime};
+		scores[idx] = {key: key, score: scoringFunction(H_start[idx], value, t[idx]), defaultScore: defaultScoring(H_start[idx], value, t[idx]), time: readableTime};
 	});
 
 	scores.sort((a, b) => b.score - a.score);
