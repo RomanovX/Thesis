@@ -16,7 +16,7 @@ function getScoringFunction(m, n) {
  * @returns 			{{training: Array.<activity>, testing: Array.<activity>}}
  */
 function splitActivities(activities) {
-	const split = Math.floor(activities.length * 9 / 10);
+	const split = Math.floor(activities.length * 8 / 10);
 	return {
 		training: activities.slice(0, split),
 		testing: activities.slice(split)
@@ -73,7 +73,7 @@ function addActivity(lastActivity, activities, futureActivities, clusterModelDic
  * @returns					{Number}	Random value between 0 and 4
  */
 function getRandomUserValue() {
-	return Math.floor(Math.random() * 4);
+	return Math.floor(Math.random() * 5);
 }
 
 function throwEmptyActivityListError() {
@@ -109,6 +109,7 @@ function getResultsForScenario(scenarioParameters, deadline, lastActivity, activ
 	let predictions = [];
 	let success = false;
 	let moment = deadline;
+	let score = 0;
 	let normalizedScore = 0;
 	while (true) {
 		testLastActivity = addActivity(testLastActivity, testActivities, testFutureActivities, clusterModelDict, testPredictionModelDict);
@@ -120,11 +121,16 @@ function getResultsForScenario(scenarioParameters, deadline, lastActivity, activ
 		const testLastActivityClusterIdx = prediction.getClusterIdx(testLastActivity, clusterModelDict[testLastActivity.activity]);
 		const testLastActivityKey = testLastActivity.activity + "_" + testLastActivityClusterIdx;
 
-		const predictionIdx = predictions.slice(0, 3).indexOf(testLastActivityKey);
+		// if (predictions.length > 0) {
+		// 	log.d(`Next: ${testLastActivityKey}, where the prediction was: ${predictions[0].key}`);
+		// }
+
+		const predictionIdx = predictions.slice(0, 1).map(prediction => prediction.key).indexOf(testLastActivityKey);
 		if (predictions.length > 0 && predictionIdx !== -1) {
-			moment = predictions[predictionIdx].key.split("_")[0];
-			const score = predictions[predictionIdx].defaultScore;
-			normalizedScore = score * userValues[moment] / userValues[moment] ** scenarioParameters.m;
+			moment = predictions[predictionIdx].key;
+			//moment = predictions[predictionIdx].key.split("_")[0];
+			score = predictions[predictionIdx].score;
+			normalizedScore = predictions[predictionIdx].defaultScore;
 			success = true;
 			break;
 		}
@@ -135,6 +141,7 @@ function getResultsForScenario(scenarioParameters, deadline, lastActivity, activ
 
 	return {
 		success: success,
+		score: score,
 		normalizedScore: normalizedScore,
 		moment: moment,
 	};
@@ -152,7 +159,7 @@ module.exports.run = function(users, userActivities) {
 	const scenarios = {
 		onlyTime: {m: 0, n: 1},
 		onlyValue: {m: 1, n: 0},
-		default: {m: 1, n: 0},
+		default: {m: 1, n: 1},
 	};
 
 	const deadlines = [
@@ -237,7 +244,7 @@ module.exports.run = function(users, userActivities) {
 					let constantResult;
 
 					// x random runs
-					const numberOfRuns = 10;
+					const numberOfRuns = 100;
 					for(let i = 1; i <= numberOfRuns; i++) {
 						const testUserValues = Object.keys(activitiesDict).reduce((map, activityName) => {
 							map[activityName] = getRandomUserValue();
@@ -247,7 +254,9 @@ module.exports.run = function(users, userActivities) {
 						const result = {
 							user: user,
 							deadline: deadline,
-							scenarios: {},
+							scores: {},
+							normalizedScores: {},
+							moments: {},
 							userValues: testUserValues
 						};
 
@@ -264,7 +273,11 @@ module.exports.run = function(users, userActivities) {
 								}
 							}
 
-							result.scenarios[scenario] = scenarioResult;
+							result.scores[scenario] = scenarioResult.score;
+							result.normalizedScores[scenario] = scenarioResult.normalizedScore;
+							result.moments[scenario] = scenarioResult.moment;
+							//result.scenarios[scenario] = scenarioResult; // For detailed results
+							//log.d(`TESTS: ${scenarioResult.success ? 'Success' : 'Fail'}`)
 						});
 
 						results.push(result);
