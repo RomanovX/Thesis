@@ -241,8 +241,6 @@ module.exports.run = function(users, userActivities) {
 						}
 					}
 
-					let constantResult;
-
 					// x random runs
 					const numberOfRuns = 100;
 					for(let i = 1; i <= numberOfRuns; i++) {
@@ -263,15 +261,7 @@ module.exports.run = function(users, userActivities) {
 						// Check the various scenarios
 						Object.keys(scenarios).forEach(scenario => {
 							const scenarioParameters = scenarios[scenario];
-							let scenarioResult;
-							if (scenarioParameters.m === 0 && constantResult) {
-								scenarioResult = constantResult;
-							} else {
-								scenarioResult = getResultsForScenario(scenarioParameters, deadline, dLastActivity, dActivities, dFutureActivities, dPredictionModels, clusterCount, clusterModels, clusterModelDict, testUserValues);
-								if (scenarioParameters.m === 0 && !constantResult) {
-									constantResult = scenarioResult;
-								}
-							}
+							let scenarioResult = getResultsForScenario(scenarioParameters, deadline, dLastActivity, dActivities, dFutureActivities, dPredictionModels, clusterCount, clusterModels, clusterModelDict, testUserValues);
 
 							result.scores[scenario] = scenarioResult.score;
 							result.normalizedScores[scenario] = scenarioResult.normalizedScore;
