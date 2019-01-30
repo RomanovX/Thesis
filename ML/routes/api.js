@@ -531,6 +531,8 @@ router.get('/results', function(req, res, next) {
 
 		const results = testing.run(users, userActivities);
 
+		await(fs.writeFile( "results.json", JSON.stringify( results ), "utf8", defer()));
+
 		res.status(200).send(results);
 	}, (err) => {
 		if(err) {

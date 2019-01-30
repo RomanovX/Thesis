@@ -157,8 +157,9 @@ module.exports.run = function(users, userActivities) {
 	const results = [];
 
 	const scenarios = {
-		onlyTime: {m: 0, n: 1},
-		onlyValue: {m: 1, n: 0},
+		chance: {m: 0, n: 0},
+		time: {m: 0, n: 1},
+		value: {m: 1, n: 0},
 		default: {m: 1, n: 1},
 	};
 
@@ -242,7 +243,7 @@ module.exports.run = function(users, userActivities) {
 					}
 
 					// x random runs
-					const numberOfRuns = 100;
+					const numberOfRuns = 1000;
 					for(let i = 1; i <= numberOfRuns; i++) {
 						const testUserValues = Object.keys(activitiesDict).reduce((map, activityName) => {
 							map[activityName] = getRandomUserValue();
