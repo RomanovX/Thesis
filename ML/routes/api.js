@@ -14,6 +14,8 @@ const User = require('../models/user');
 const ClusterModel = require('../models/clusterModel');
 const PredictionModel = require('../models/predictionModel');
 
+t
+
 function calculateForUser(user) {
 	let clusters = [], clusterModels = [];
 
@@ -502,15 +504,15 @@ router.get('/results', function(req, res, next) {
 		const users = await(Activity.distinct('user', defer()));
 
 		// Get activities per user
-		const userActivities = users.reduce((res, userId) => {
-			res[userId] = await(Activity.find({user: userId}).sort({start: 1}).exec(defer()));
-			return res;
+		const userActivities = users.reduce((acc, userId) => {
+			acc[userId] = await(Activity.find({user: userId}).sort({start: 1}).exec(defer()));
+			return acc;
 		}, {});
 
 		// Get distinct activity names per user
-		const userActivityNames = users.reduce((res, userId) => {
-			res[userId] = await(Activity.distinct('activity', {user: userId}, defer()));
-			return res;
+		const userActivityNames = users.reduce((acc, userId) => {
+			acc[userId] = await(Activity.distinct('activity', {user: userId}, defer()));
+			return acc;
 		}, {});
 
 		// // Get values per user (and fill in if missing)
