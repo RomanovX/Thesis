@@ -14,8 +14,6 @@ const User = require('../models/user');
 const ClusterModel = require('../models/clusterModel');
 const PredictionModel = require('../models/predictionModel');
 
-t
-
 function calculateForUser(user) {
 	let clusters = [], clusterModels = [];
 
