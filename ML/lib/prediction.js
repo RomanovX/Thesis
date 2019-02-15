@@ -37,7 +37,7 @@ const util = require('./util');
  * @returns 		{Number}	Starting time in minutes since start of day
  */
 function getMinutesSinceMidnight(activity) {
-	// Denormalize start
+	// Denormalize start (incorporate timezone offset)
 	const normalizedStart = activity.start;
 	const timezoneOffset = normalizedStart.getTimezoneOffset() * 60000;
 	const start = new Date(+normalizedStart +timezoneOffset);
